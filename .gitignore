@@ -2,8 +2,11 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+*.egg-info/
 
 # Reproducible generated preprocessing artifacts
 data/processed/angular/*.json
 data/processed/angular/*.jsonl
 
+# Reproducible generated chunk artifacts
+data/chunks/

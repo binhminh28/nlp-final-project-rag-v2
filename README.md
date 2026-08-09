@@ -265,6 +265,33 @@ Phương pháp này:
 - không sử dụng hierarchy;
 - không sử dụng LLM.
 
+Implementation baseline của repository dùng `tiktoken==0.12.0` với encoding
+`cl100k_base`. Mỗi normalized document được linearize bằng cách nối `text` của
+mọi block theo source order với separator cố định `\n\n`, sau đó tokenize thành
+một continuous stream. Default là window 512 tokens, overlap 64 tokens, stride
+448 tokens; chunk cuối không pad hoặc merge. Span token dùng interval
+`[token_start, token_end)` và được tính trực tiếp trên source token stream.
+`token_count` luôn là độ dài token slice gốc, không được tính lại từ `text`.
+Nếu nominal start/end nằm giữa các byte-token của một Unicode code point,
+boundary được lùi tối thiểu đến token position tạo valid UTF-8. Window sau bắt
+đầu từ actual end trừ nominal overlap rồi áp dụng cùng safety check, nên không
+mất source token. Actual span, overlap và adjustment được lưu trong metadata;
+policy chỉ xét encoding validity, không xét document structure hay semantics.
+
+Chạy baseline:
+
+```bash
+python -m rag_chunking.cli.chunk_fixed \
+  --input data/processed/angular/documents.jsonl \
+  --output data/chunks/angular/fixed_size \
+  --chunk-size 512 \
+  --chunk-overlap 64
+```
+
+Artifacts của strategy được tách riêng thành `chunks.jsonl`, `manifest.json`,
+và `stats.json` dưới output directory. Các file này deterministic và được
+ignore khỏi Git vì có thể tái tạo từ normalized corpus.
+
 Output:
 
 ```text
