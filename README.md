@@ -14,7 +14,7 @@ Hệ thống so sánh bốn phương pháp:
 1. **Fixed-size Chunking** — baseline đơn giản.
 2. **Structure-aware Chunking** — sử dụng heading/section có sẵn.
 3. **Prompt-based Hierarchical Chunking** — LLM suy luận chunk boundary và hierarchy bằng prompting, lấy cảm hứng từ HiChunk nhưng không fine-tune.
-4. **Original HiChunk** — phương pháp gốc của paper, sử dụng fine-tuned hierarchical chunker, dùng làm reference method.
+4. **Original HiChunk (HC200)** — cấu hình tham chiếu từ paper: hierarchy do fine-tuned HiChunk model tạo ra được split thêm theo fixed-size khoảng 200 tokens.
 
 ---
 
@@ -28,7 +28,7 @@ flowchart TD
     B --> C1[Fixed-size Chunker]
     B --> C2[Structure-aware Chunker]
     B --> C3[Prompt-based LLM Chunker]
-    B --> C4[Original HiChunk]
+    B --> C4[Original HiChunk<br/>(HC200)]
 
     C1 --> D[Unified Chunk Representation]
     C2 --> D
@@ -44,7 +44,7 @@ flowchart TD
     F --> G[Dense Retrieval<br/>Same Token Budget]
 
     G --> H1[Base Retrieval]
-    G --> H2[Auto-Merge Retrieval<br/>Optional / Ablation]
+    G --> H2[Hierarchical Retrieval Ablation<br/>Simplified AM / Original AM]
 
     H1 --> I[RAG Context]
     H2 --> I
@@ -84,8 +84,8 @@ Technical Documents
         +---------------------+----------------------+----------------------+--------------------+
         |                     |                      |                      |
         v                     v                      v                      v
- Fixed-size              Structure-aware        Prompt-based          Original
- Chunking                   Chunking             LLM Chunking          HiChunk
+ Fixed-size              Structure-aware        Prompt-based          Original HiChunk
+ Chunking                   Chunking             LLM Chunking          (HC200)
         |                     |                      |                      |
         +---------------------+----------------------+----------------------+
                                       |
@@ -107,8 +107,8 @@ Technical Documents
                              +--------+--------+
                              |                 |
                              v                 v
-                       Base Retrieval      Auto-Merge
-                                           (Ablation)
+                       Base Retrieval      Hierarchical Retrieval
+                                           (AM Ablation)
                              |                 |
                              +--------+--------+
                                       |
@@ -220,7 +220,14 @@ Representation trung gian:
 }
 ```
 
-Preprocessing phải giống nhau cho tất cả chunking methods để đảm bảo so sánh công bằng.
+**All methods must operate on the same normalized source content, but each chunking method may construct its own required intermediate representation.** Cụ thể:
+
+- Fixed-size có thể dùng tokenized continuous text;
+- Structure-aware cần Markdown/HTML heading tree;
+- Prompt-based LLM cần sentence segmentation và sentence IDs;
+- HiChunk cần input representation phù hợp với implementation gốc.
+
+Fairness nằm ở việc giữ nguyên cùng source content, không thêm hoặc bớt thông tin giữa các methods, và cố định downstream pipeline; không bắt buộc preprocessing implementation phải giống hệt nhau.
 
 ---
 
@@ -416,11 +423,11 @@ Iterative inference được bỏ trong phạm vi bài tập vì corpus chỉ g�
 
 ## 6.4 Original HiChunk
 
-HiChunk gốc được sử dụng như **reference method**.
+HiChunk gốc được sử dụng như **reference method from the original paper**. Model tạo hierarchical segmentation; output inference được dùng để dựng hierarchy.
 
 Mục đích không phải để chứng minh phương pháp của chúng ta giống HiChunk, mà để trả lời:
 
-> Các phương pháp nhẹ hơn có thể đạt gần chất lượng của HiChunk gốc đến mức nào?
+> Các phương pháp nhẹ hơn có thể đạt gần chất lượng của Original HiChunk (HC200) đến mức nào?
 
 Pipeline:
 
@@ -440,10 +447,18 @@ Hierarchical Chunk Points
 Hierarchy Tree
    |
    v
-HiChunk Chunks
+HC (direct hierarchical chunks)
+   |
+   v
+Fixed-size Split (~200 tokens)
+   |
+   v
+HC200
 ```
 
 HiChunk original khác ba phương pháp còn lại ở việc sử dụng model đã fine-tune chuyên biệt cho nhiệm vụ hierarchical document chunking.
+
+Trong project này, **HC** là hierarchical chunks trực tiếp từ HiChunk model, chưa split thêm. **HC200** là kết quả hierarchy được split thêm theo fixed-size setting khoảng 200 tokens của paper và là cấu hình **Original HiChunk (HC200)** dùng trong main experiment. Main experiment không bật Auto-Merge. **HC200 + Original Auto-Merge** chỉ được dùng trong hierarchical retrieval ablation.
 
 Do đó HiChunk được xem là:
 
@@ -664,9 +679,13 @@ Stop when total context reaches token budget
 
 ---
 
-# 12. Module 8 — Auto-Merge Retrieval
+# 12. Module 8 — Auto-Merge Retrieval Ablation
 
-Auto-Merge không nằm trong main experiment đầu tiên mà được dùng như một **ablation experiment**.
+Auto-Merge không nằm trong main experiment mà chỉ được dùng trong **hierarchical retrieval ablation**. Hai biến thể dưới đây là hai cơ chế riêng, không được dùng chung một tên generic.
+
+## Simplified Auto-Merge
+
+**Simplified Auto-Merge** là logic đơn giản hóa của project, chỉ áp dụng cho Structure-aware và Prompt-LLM.
 
 Ví dụ hierarchy:
 
@@ -698,7 +717,7 @@ Access Token + Refresh Token
           OAuth2
 ```
 
-Bản đơn giản:
+Bản đơn giản của project:
 
 ```python
 if matched_children >= 2 and parent_fits_budget:
@@ -711,21 +730,27 @@ Main experiment:
 Fixed
 Structure
 Prompt-LLM
-HiChunk
+Original HiChunk (HC200)
 ```
 
-Ablation experiment:
+## Original Auto-Merge
+
+**Original Auto-Merge** chỉ áp dụng cho HiChunk reference và phải dùng đầy đủ merge logic từ paper/source implementation, không thay bằng logic simplified của project.
+
+Ablation experiment được chốt như sau:
 
 ```text
 Structure
-Structure + Auto-Merge
+Structure + Simplified Auto-Merge
 
 Prompt-LLM
-Prompt-LLM + Auto-Merge
+Prompt-LLM + Simplified Auto-Merge
 
-HiChunk
-HiChunk + Auto-Merge
+HC200
+HC200 + Original Auto-Merge
 ```
+
+Fixed-size không tham gia Auto-Merge ablation vì không có hierarchy.
 
 ---
 
@@ -777,48 +802,41 @@ Chỉ chunking strategy thay đổi.
 
 # 14. Module 10 — Evaluation
 
-Evaluation được chia thành ba tầng.
+Evaluation được chia thành bốn nhóm:
+
+1. **Retrieval quality** — metric chính của nghiên cứu.
+2. **End-to-end RAG quality**.
+3. **Chunking quality / structural analysis**.
+4. **Efficiency / computational cost**.
+
+Mục tiêu là không chỉ trả lời phương pháp nào cho chất lượng RAG tốt hơn, mà còn trả lời:
+
+> Chất lượng đạt được có tương xứng với chi phí chunking hay không?
+
+Đặc biệt khi so sánh với Original HiChunk (HC200) trong main experiment, tất cả phương pháp phải được chạy lại trên **cùng dataset mới, cùng retrieval pipeline, cùng generator và cùng implementation metrics**.
+
+Không sử dụng trực tiếp các con số trong paper HiChunk như một hàng trong bảng kết quả mới, vì dataset và experimental setting khác nhau.
 
 ---
 
-## 14.1 Chunking Analysis
+## 14.1 Primary Metric — Evidence Recall
 
-Mục tiêu là phân tích đặc tính của từng chunking method.
+**Evidence Recall là metric chính của nghiên cứu.**
 
-Metrics:
+Metric này đo tỷ lệ gold evidence xuất hiện trong retrieved context.
 
-```text
-Average Chunk Size
-Number of Chunks
-Chunk Size Distribution
-Hierarchy Depth
-Chunking Time
-LLM Calls
-Estimated Token Cost
-```
-
-Boundary F1 có thể được sử dụng như secondary metric nếu có human annotation cho semantic boundaries.
-
----
-
-## 14.2 Retrieval Evaluation
-
-Metric chính:
+Ví dụ:
 
 ```text
-Evidence Recall
-```
+Gold evidence:
 
-Ví dụ gold evidence:
-
-```text
 E1
 E2
 E3
 E4
 ```
 
-retrieved context chứa:
+Retrieved context chứa:
 
 ```text
 E1
@@ -832,7 +850,16 @@ thì:
 Evidence Recall = 3 / 4 = 0.75
 ```
 
-Kết quả được tính riêng:
+Có thể tính ở mức sentence:
+
+```text
+Evidence Recall =
+Number of retrieved gold evidence sentences
+-------------------------------------------
+Total number of gold evidence sentences
+```
+
+Evidence Recall phải được báo riêng cho:
 
 ```text
 T0
@@ -841,325 +868,697 @@ T2
 Overall
 ```
 
+Bảng kết quả chính:
+
+| Method | T0 | T1 | T2 | Overall |
+|---|---:|---:|---:|---:|
+| Fixed | | | | |
+| Structure | | | | |
+| Prompt-LLM | | | | |
+| Original HiChunk (HC200) | | | | |
+
+Lý do Evidence Recall được chọn làm primary metric:
+
+- nó đo trực tiếp ảnh hưởng của chunking tới retrieval;
+- ít phụ thuộc vào khả năng của generator LLM hơn answer metrics;
+- đặc biệt phù hợp với T1/T2, nơi evidence trải trên nhiều câu hoặc nhiều semantic regions.
+
 ---
 
-## 14.3 End-to-End RAG Evaluation
+## 14.2 Optional Retrieval Diagnostic — Evidence Precision / Density
 
-Generated answer được so với gold answer.
+Evidence Recall chỉ trả lời:
 
-Metrics:
+> Hệ thống lấy được bao nhiêu evidence cần thiết?
+
+Nhưng chưa trả lời:
+
+> Retrieved context chứa bao nhiêu thông tin không liên quan?
+
+Do đó có thể thêm một diagnostic metric:
+
+```text
+Evidence Precision =
+Number of retrieved evidence sentences
+--------------------------------------
+Total number of retrieved sentences
+```
+
+Hoặc:
+
+```text
+Evidence Density =
+Number of evidence tokens
+-------------------------
+Total retrieved context tokens
+```
+
+Metric này là **optional**, không phải primary metric.
+
+Nó hữu ích trong trường hợp hai phương pháp có Evidence Recall tương đương nhưng một phương pháp đưa vào context nhiều nội dung dư thừa hơn.
+
+---
+
+# 15. End-to-End RAG Evaluation
+
+Sau retrieval, retrieved context được đưa vào cùng một generator LLM.
+
+Generated answer được so sánh với gold answer.
+
+Các metric chính:
 
 ```text
 Answer F1
 ROUGE-L
 ```
 
-Có thể bổ sung Exact Match đối với câu trả lời ngắn nếu cần.
+---
+
+## 15.1 Answer F1
+
+Answer F1 đo mức overlap token giữa generated answer và gold answer.
+
+Báo cáo riêng:
+
+```text
+T0 F1
+T1 F1
+T2 F1
+Overall F1
+```
+
+Ví dụ bảng:
+
+| Method | T0 F1 | T1 F1 | T2 F1 | Overall |
+|---|---:|---:|---:|---:|
+| Fixed | | | | |
+| Structure | | | | |
+| Prompt-LLM | | | | |
+| Original HiChunk (HC200) | | | | |
 
 ---
 
-# 15. Experimental Design
+## 15.2 ROUGE-L
 
-Main experiment:
+ROUGE-L được sử dụng để đánh giá mức tương đồng giữa generated answer và gold answer dựa trên longest common subsequence.
+
+Báo cáo:
 
 ```text
-                  Same Documents
-                       |
-        +--------------+--------------+--------------+
-        |              |              |              |
-      Fixed        Structure       Prompt-LLM      HiChunk
-        |              |              |              |
-        +--------------+--------------+--------------+
-                       |
-                 Same Embedding
-                       |
-                 Same Retrieval
-                       |
-              Same Token Budget
-                       |
-                 Same Generator
-                       |
-                 Same QA Dataset
-                       |
-                 Same Evaluation
+T0 ROUGE-L
+T1 ROUGE-L
+T2 ROUGE-L
+Overall ROUGE-L
 ```
 
-Biến độc lập:
+Ví dụ:
+
+| Method | T0 | T1 | T2 | Overall |
+|---|---:|---:|---:|---:|
+| Fixed | | | | |
+| Structure | | | | |
+| Prompt-LLM | | | | |
+| Original HiChunk (HC200) | | | | |
+
+---
+
+## 15.3 Không sử dụng Fact-Cov trong main experiment
+
+Original HiChunk sử dụng Fact-Cov trên HiCBench để đánh giá factual coverage đối với answer evidence-dense.
+
+Trong scope bài tập này, Fact-Cov không được đưa vào main experiment vì:
+
+- cần thêm LLM evaluator;
+- chi phí cao;
+- phức tạp khi reproducibility;
+- dataset nhỏ có thể được kiểm tra thủ công trong quá trình xây dựng QA.
+
+Nếu cần kiểm tra thêm chất lượng answer dài, có thể thực hiện manual error analysis trên một subset nhỏ.
+
+---
+
+# 16. Chunking Quality Analysis
+
+Chunking quality được xem là **secondary analysis**, không phải kết quả chính.
+
+---
+
+## 16.1 Boundary F1
+
+Nếu có human-annotated semantic boundaries, có thể tính:
+
+```text
+Boundary Precision
+Boundary Recall
+Boundary F1
+```
+
+Để tương thích với cách đánh giá hierarchical chunking, có thể báo:
+
+```text
+F1-L1
+F1-L2
+F1-All
+```
+
+Trong đó:
+
+```text
+F1-L1:
+đánh giá boundary của Level 1
+
+F1-L2:
+đánh giá boundary của Level 2
+
+F1-All:
+bỏ qua level, chỉ xét vị trí chunk boundary
+```
+
+Ví dụ:
+
+| Method | F1-L1 | F1-L2 | F1-All |
+|---|---:|---:|---:|
+| Fixed | N/A | N/A | |
+| Structure | | | |
+| Prompt-LLM | | | |
+| Original HiChunk (HC200) | | | |
+
+---
+
+## 16.2 Lưu ý quan trọng về ground truth
+
+Không được sử dụng trực tiếp Markdown heading làm gold boundary rồi dùng chính gold này để đánh giá Structure-aware Chunking.
+
+Ví dụ thiết kế sau là không hợp lệ:
+
+```text
+Structure method:
+heading -> boundary
+
+Gold:
+heading -> boundary
+```
+
+vì Structure-aware gần như chắc chắn đạt perfect score.
+
+Nếu dùng Boundary F1, gold phải là:
+
+```text
+Human semantic boundary annotation
+```
+
+người gán nhãn đọc nội dung và xác định semantic segmentation độc lập với algorithm.
+
+Nếu không đủ thời gian làm human annotation, có thể bỏ Boundary F1 khỏi main evaluation.
+
+---
+
+# 17. Chunk Statistics
+
+Các đặc tính chunk được thu thập nhằm giải thích kết quả retrieval.
+
+Đối với mỗi method, ghi:
+
+```text
+Number of chunks / document
+Average chunk size
+Median chunk size
+Minimum chunk size
+Maximum chunk size
+Chunk size distribution
+Average hierarchy depth
+```
+
+Ví dụ:
+
+| Method | #Chunks/doc | Avg Tokens | Median Tokens | Avg Depth |
+|---|---:|---:|---:|---:|
+| Fixed | | | | 0 |
+| Structure | | | | |
+| Prompt-LLM | | | | |
+| Original HiChunk (HC200) | | | | |
+
+Các metric này không được dùng để khẳng định method nào "tốt hơn" trực tiếp.
+
+Chúng chủ yếu hỗ trợ giải thích:
+
+```text
+tại sao retrieval tốt/xấu
+```
+
+Ví dụ:
+
+> Một method tạo quá nhiều chunk nhỏ có thể tăng khả năng match query nhưng làm mất semantic completeness.
+
+---
+
+# 18. Efficiency Evaluation
+
+Efficiency là một phần quan trọng của research question vì Structure-aware Chunking được kỳ vọng rẻ hơn LLM-based chunking.
+
+Các metric cần thu thập:
+
+```text
+Chunking Time / Document
+LLM Calls / Document
+LLM Input Tokens / Document
+LLM Output Tokens / Document
+Estimated Cost / Document
+```
+
+---
+
+## 18.1 Chunking Time
+
+Đo thời gian từ:
+
+```text
+Normalized Document
+        |
+        v
+Chunking Method
+        |
+        v
+Final Chunk Representation
+```
+
+Đơn vị:
+
+```text
+seconds / document
+```
+
+Ví dụ:
+
+| Method | Avg Time/doc |
+|---|---:|
+| Fixed | |
+| Structure | |
+| Prompt-LLM | |
+| Original HiChunk (HC200) | |
+
+---
+
+## 18.2 LLM Calls
+
+Đối với:
+
+```text
+Prompt-LLM
+Original HiChunk (HC200)
+```
+
+ghi số lần inference trên mỗi document.
+
+Đối với:
+
+```text
+Fixed
+Structure
+```
+
+giá trị:
+
+```text
+0
+```
+
+---
+
+## 18.3 LLM Token Usage
+
+Ghi riêng:
+
+```text
+Input tokens
+Output tokens
+```
+
+Ví dụ:
+
+| Method | Input Tokens/doc | Output Tokens/doc |
+|---|---:|---:|
+| Fixed | 0 | 0 |
+| Structure | 0 | 0 |
+| Prompt-LLM | | |
+| Original HiChunk (HC200) | | |
+
+Nếu dùng local model thì token usage vẫn được ghi để đo computational workload.
+
+Nếu dùng API thì token usage có thể quy đổi thành estimated monetary cost.
+
+---
+
+## 18.4 Estimated Cost
+
+Nếu API model được sử dụng:
+
+```text
+Cost/doc =
+Input Token Cost
++
+Output Token Cost
+```
+
+Nếu chạy local model và không có cost trực tiếp, có thể báo:
+
+```text
+GPU inference time
+```
+
+thay vì monetary cost.
+
+---
+
+# 19. Metrics Summary
+
+Bộ metrics chính thức của experiment:
+
+## Primary Metrics
+
+```text
+1. Evidence Recall
+   - T0
+   - T1
+   - T2
+   - Overall
+
+2. Answer F1
+   - T0
+   - T1
+   - T2
+   - Overall
+
+3. ROUGE-L
+   - T0
+   - T1
+   - T2
+   - Overall
+```
+
+---
+
+## Efficiency Metrics
+
+```text
+4. Chunking Time / Document
+
+5. LLM Calls / Document
+
+6. LLM Input Tokens / Document
+
+7. LLM Output Tokens / Document
+
+8. Estimated Cost / Document
+   hoặc GPU inference time nếu chạy local
+```
+
+---
+
+## Secondary Metrics
+
+```text
+9. Boundary F1-L1
+
+10. Boundary F1-L2
+
+11. Boundary F1-All
+```
+
+Chỉ sử dụng nếu có human semantic boundary annotations.
+
+---
+
+## Diagnostic Metrics
+
+```text
+12. Evidence Precision / Density
+
+13. Average Chunk Size
+
+14. Number of Chunks
+
+15. Hierarchy Depth
+```
+
+Các metric này chủ yếu được dùng để giải thích kết quả.
+
+---
+
+# 20. Metrics Không Cần Thiết Trong Main Experiment
+
+Các metric sau không được đưa vào main experiment:
+
+```text
+BLEU
+BERTScore
+MRR
+NDCG
+Recall@k
+Precision@k
+Fact-Cov
+```
+
+Không phải vì các metric này không hợp lệ, mà vì chúng không cần thiết để trả lời research question chính và sẽ làm experimental setup phức tạp không cần thiết.
+
+Đặc biệt:
+
+```text
+Recall@k
+```
+
+không được ưu tiên vì các chunking methods tạo ra chunk có kích thước khác nhau.
+
+Thay vào đó, retrieval được kiểm soát bằng:
+
+```text
+Same Token Budget
+```
+
+---
+
+# 21. Fair Comparison Protocol
+
+Để so sánh:
+
+```text
+Fixed
+Structure
+Prompt-LLM
+Original HiChunk (HC200)
+```
+
+công bằng, chỉ một biến được thay đổi:
 
 ```text
 Chunking Strategy
 ```
 
-Các biến được giữ cố định:
+Tất cả các biến còn lại phải giống nhau:
 
 ```text
-Corpus
-QA Dataset
-Embedding Model
-Similarity Metric
-Retrieval Token Budget
-Generator LLM
-Generation Prompt
-Evaluation Metrics
+Same Documents
+
+Same QA Dataset
+
+Same Gold Evidence
+
+Same Embedding Model
+
+Same Query Embedding
+
+Same Similarity Metric
+
+Same Retrieval Token Budget
+
+Same Generator LLM
+
+Same Generator Prompt
+
+Same Generation Parameters
+
+Same Evaluation Code
+
+Same Metrics
 ```
 
----
-
-# 16. Main Experiment Matrix
-
-| Method | Fine-tune | Uses Explicit Structure | Uses LLM | Hierarchical |
-|---|---:|---:|---:|---:|
-| Fixed-size | No | No | No | No |
-| Structure-aware | No | Yes | No | Yes |
-| Prompt-based LLM | No | Optional | Yes | Yes |
-| Original HiChunk | Yes | No / Semantic inference | Yes | Yes |
+Tất cả methods sử dụng **cùng normalized source content**, nhưng có thể tạo intermediate representation riêng phục vụ thuật toán của mình. Không method nào được thêm hoặc bớt source information, và toàn bộ downstream pipeline vẫn được giữ cố định.
 
 ---
 
-# 17. Expected Result Tables
+# 22. Đối chiếu với Original HiChunk
 
-## Retrieval Quality
+Original HiChunk (HC200) phải được chạy trên **cùng technical document dataset mới**.
 
-| Method | T0 Evidence Recall | T1 Evidence Recall | T2 Evidence Recall | Average |
+Không lấy trực tiếp kết quả từ Table 3 hoặc Table 4 của paper để đặt cạnh kết quả mới như thể chúng thuộc cùng experiment.
+
+Đúng:
+
+```text
+Our Dataset
+
+        Fixed
+          |
+        run
+          |
+      metrics
+
+      Structure
+          |
+        run
+          |
+      metrics
+
+     Prompt-LLM
+          |
+        run
+          |
+      metrics
+
+Original HiChunk (HC200)
+          |
+        run
+          |
+      metrics
+```
+
+Sau đó:
+
+```text
+Compare all four methods
+on exactly the same dataset.
+```
+
+Kết quả paper HiChunk chỉ được sử dụng để:
+
+- kiểm tra xu hướng;
+- giải thích kết quả;
+- so sánh qualitative trends;
+- thảo luận sự khác biệt giữa benchmark gốc và technical-document dataset mới.
+
+---
+
+# 23. Updated Main Experiment Tables
+
+## Table A — Retrieval Quality
+
+| Method | T0 Evidence Recall | T1 Evidence Recall | T2 Evidence Recall | Overall |
 |---|---:|---:|---:|---:|
 | Fixed | | | | |
 | Structure | | | | |
 | Prompt-LLM | | | | |
-| HiChunk | | | | |
+| Original HiChunk (HC200) | | | | |
+
+Đây là **bảng quan trọng nhất của nghiên cứu**.
 
 ---
 
-## RAG Answer Quality
+## Table B — End-to-End RAG Quality
 
-| Method | T0 F1 | T1 F1 | T2 F1 | ROUGE-L |
-|---|---:|---:|---:|---:|
-| Fixed | | | | |
-| Structure | | | | |
-| Prompt-LLM | | | | |
-| HiChunk | | | | |
+| Method | Answer F1 | ROUGE-L |
+|---|---:|---:|
+| Fixed | | |
+| Structure | | |
+| Prompt-LLM | | |
+| Original HiChunk (HC200) | | |
 
----
-
-## Efficiency
-
-| Method | Time / Document | LLM Calls | Input Tokens | Relative Cost |
-|---|---:|---:|---:|---:|
-| Fixed | | 0 | 0 | |
-| Structure | | 0 | 0 | |
-| Prompt-LLM | | | | |
-| HiChunk | | | | |
-
----
-
-# 18. Research Questions
-
-## RQ1
-
-> Structure-aware chunking có cải thiện retrieval và RAG so với fixed-size chunking trên technical documents hay không?
-
-So sánh:
+Trong appendix hoặc bảng phụ có thể phân tách:
 
 ```text
-Fixed vs Structure
-```
-
----
-
-## RQ2
-
-> Prompt-based hierarchical chunking có cải thiện chất lượng so với deterministic structure-aware chunking hay không?
-
-So sánh:
-
-```text
-Structure vs Prompt-LLM
-```
-
----
-
-## RQ3
-
-> Một phương pháp không fine-tune có thể đạt gần chất lượng của HiChunk gốc đến mức nào?
-
-So sánh:
-
-```text
-Structure vs HiChunk
-
-Prompt-LLM vs HiChunk
-```
-
----
-
-## RQ4
-
-> Hierarchical Auto-Merge có cải thiện retrieval trên các câu hỏi evidence-dense hay không?
-
-So sánh:
-
-```text
-Base Retrieval
-vs
-Base Retrieval + Auto-Merge
-```
-
-đặc biệt trên:
-
-```text
+T0
 T1
 T2
 ```
 
 ---
 
-# 19. Expected Contribution
+## Table C — Efficiency
 
-Bài tập không nhằm đề xuất một replacement hoàn chỉnh cho HiChunk.
-
-Đóng góp chính là một empirical study cho trường hợp đặc biệt:
-
-```text
-Technical Documents
-+
-Explicit Document Structure
-```
-
-Nghiên cứu kiểm tra giả thuyết rằng:
-
-> Khi tài liệu đã chứa strong structural signals như heading và section hierarchy, một deterministic structure-aware chunker có thể giữ được phần lớn lợi ích của hierarchical chunking với chi phí thấp hơn đáng kể so với LLM-based approaches.
-
-Đồng thời Prompt-based LLM Chunker cho phép đánh giá khoảng cách giữa:
-
-```text
-No LLM
-        ↓
-Prompt-only LLM
-        ↓
-Fine-tuned HiChunk
-```
+| Method | Time/doc | LLM Calls/doc | Input Tokens/doc | Output Tokens/doc | Cost/doc |
+|---|---:|---:|---:|---:|---:|
+| Fixed | | 0 | 0 | 0 | |
+| Structure | | 0 | 0 | 0 | |
+| Prompt-LLM | | | | | |
+| Original HiChunk (HC200) | | | | | |
 
 ---
 
-# 20. Final System Pipeline
+## Table D — Structural Analysis
 
-```text
-                           TECHNICAL DOCUMENTS
-                                  |
-                                  v
-                           PREPROCESSING
-                                  |
-          +-----------------------+------------------------+
-          |                       |                        |
-          v                       v                        v
-     FIXED-SIZE              STRUCTURE-AWARE          PROMPT-LLM
-       CHUNKER                   CHUNKER                CHUNKER
-          |                       |                        |
-          |                       |                        |
-          +-----------------------+------------------------+
-                                  |
-                         +--------+--------+
-                         |                 |
-                         v                 |
-                    ORIGINAL              |
-                     HICHUNK               |
-                         |                 |
-                         +--------+--------+
-                                  |
-                                  v
-                         UNIFIED CHUNK FORMAT
-                                  |
-                                  v
-                             EMBEDDING
-                                  |
-                                  v
-                           VECTOR INDEX
-                                  |
-                 QUESTION --------+
-                                  |
-                                  v
-                           DENSE RETRIEVAL
-                       SAME TOKEN BUDGET
-                                  |
-                     +------------+------------+
-                     |                         |
-                     v                         v
-               BASE RETRIEVAL              AUTO-MERGE
-                                            ABLATION
-                     |                         |
-                     +------------+------------+
-                                  |
-                                  v
-                              CONTEXT
-                                  |
-                                  v
-                           GENERATOR LLM
-                                  |
-                                  v
-                               ANSWER
-                                  |
-              +-------------------+--------------------+
-              |                   |                    |
-              v                   v                    v
-         CHUNK ANALYSIS     RETRIEVAL METRICS    ANSWER METRICS
-         Time / Cost        Evidence Recall       F1 / ROUGE-L
-              |                   |                    |
-              +-------------------+--------------------+
-                                  |
-                                  v
-                         FINAL COMPARISON
+| Method | #Chunks/doc | Avg Chunk Tokens | Avg Depth | F1-All |
+|---|---:|---:|---:|---:|
+| Fixed | | | 0 | |
+| Structure | | | | |
+| Prompt-LLM | | | | |
+| Original HiChunk (HC200) | | | | |
 
-             Fixed vs Structure vs Prompt-LLM vs HiChunk
-```
+`F1-All` chỉ được đưa vào nếu có human semantic annotation.
 
 ---
 
-# 21. Scope của bài tập
+## Table E — Hierarchical Retrieval Ablation
 
-## Trong scope
+| Method | Evidence Recall | Answer F1 | ROUGE-L |
+|---|---:|---:|---:|
+| Structure | | | |
+| Structure + Simplified AM | | | |
+| Prompt-LLM | | | |
+| Prompt-LLM + Simplified AM | | | |
+| HC200 | | | |
+| HC200 + Original AM | | | |
 
-- Technical document collection.
-- Document preprocessing.
-- Fixed-size chunking.
-- Structure-aware hierarchical chunking.
-- Prompt-based LLM hierarchical chunking.
-- Original HiChunk inference.
-- Dense embedding retrieval.
-- Evidence Recall evaluation.
-- End-to-end RAG generation.
-- F1 / ROUGE-L evaluation.
-- Efficiency / cost comparison.
-- Auto-Merge ablation nếu đủ thời gian.
-
-## Ngoài scope
-
-- Fine-tune model mới.
-- Reproduce toàn bộ training procedure của HiChunk.
-- Rebuild toàn bộ HiCBench.
-- Fact-Cov evaluation lặp nhiều lần như paper.
-- Multiple retrievers.
-- Multiple generator LLMs.
-- Extremely long document iterative inference cho phương pháp của chúng ta.
-- Production vector database.
+Trong ablation này, có thể báo cáo riêng T1/T2 vì đây là các query mà hierarchy-aware retrieval được kỳ vọng hữu ích nhất.
 
 ---
 
-# 22. Nguyên tắc quan trọng nhất của experiment
+# 24. Interpretation Strategy
 
-Để đảm bảo fair comparison:
-
-> **Chỉ thay đổi Chunking Strategy.**
-
-Các thành phần downstream phải được giữ cố định:
+Khi đọc kết quả, không chỉ xét:
 
 ```text
-Same Documents
-Same QA
-Same Embedding
-Same Retrieval Algorithm
-Same Retrieval Token Budget
-Same Generator
-Same Prompt
-Same Metrics
+Method A > Method B
 ```
 
-Nhờ đó, sự khác biệt trong kết quả có thể được phân tích chủ yếu từ ảnh hưởng của chiến lược chunking.
+mà cần xét đồng thời:
+
+```text
+Retrieval Quality
+        +
+Answer Quality
+        +
+Efficiency
+```
+
+Ví dụ:
+
+```text
+Evidence Recall
+
+Structure    = 0.81
+Prompt-LLM   = 0.83
+HC200        = 0.84
+```
+
+nhưng:
+
+```text
+Chunking Cost
+
+Structure    << Prompt-LLM << HC200
+```
+
+thì kết luận hợp lý có thể là:
+
+> Structure-aware Chunking đạt chất lượng gần tương đương hierarchical LLM methods trên technical documents có explicit structure, trong khi chi phí chunking thấp hơn đáng kể.
+
+Ngược lại, nếu:
+
+```text
+HC200 >> Structure
+```
+
+đặc biệt trên T1/T2, có thể kết luận:
+
+> Explicit heading hierarchy không hoàn toàn thay thế được semantic hierarchy được suy luận bởi hierarchical LLM chunking.
+
+Cả hai kết quả đều là kết quả nghiên cứu hợp lệ.
