@@ -4,9 +4,18 @@ __pycache__/
 .venv/
 *.egg-info/
 
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
 # Reproducible generated preprocessing artifacts
 data/processed/angular/*.json
 data/processed/angular/*.jsonl
 
 # Reproducible generated chunk artifacts
 data/chunks/
+
+# Environment files
+.env
+!.env.example

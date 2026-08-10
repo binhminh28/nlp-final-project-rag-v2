@@ -1,4 +1,4 @@
-"""Deterministic JSONL, manifest, and statistics output for chunks."""
+"""Deterministic artifact writer for structure-aware chunking."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .fixed_size import FixedSizeChunkingConfig
 from .models import Chunk
+from .structure_aware import StructureAwareChunkingConfig
 from .tokenizer import TiktokenTokenizer
 
 
@@ -17,10 +17,10 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
         stream.write("\n")
 
 
-def write_fixed_size_artifacts(
+def write_structure_aware_artifacts(
     chunks: list[Chunk],
     output_dir: Path,
-    config: FixedSizeChunkingConfig,
+    config: StructureAwareChunkingConfig,
     tokenizer: TiktokenTokenizer,
     statistics: dict[str, Any],
     source_input: str,
@@ -28,34 +28,22 @@ def write_fixed_size_artifacts(
     output_dir.mkdir(parents=True, exist_ok=True)
     with (output_dir / "chunks.jsonl").open("w", encoding="utf-8", newline="\n") as stream:
         for chunk in chunks:
-            stream.write(
-                json.dumps(chunk.to_dict(), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-            )
+            stream.write(json.dumps(chunk.to_dict(), ensure_ascii=False, sort_keys=True, separators=(",", ":")))
             stream.write("\n")
     manifest = {
         "schema_version": 1,
-        "strategy": "fixed_size",
-        "chunk_size": config.chunk_size,
-        "chunk_overlap": config.chunk_overlap,
-        "stride": config.stride,
+        "strategy": "structure_aware",
+        "max_chunk_tokens": config.max_chunk_tokens,
         "tokenizer": tokenizer.name,
-        "boundary_policy": "utf8_safe_minimal_backoff",
+        "overlap_policy": "none",
+        "heading_policy": "local_heading_first_chunk_if_atomic_budget_allows_v1",
+        "hierarchy_policy": "markdown_stack_pop_level_gte_current_v1",
+        "packing_policy": "section_local_source_order_greedy_atomic_blocks_v1",
+        "sibling_section_merge_policy": "never",
+        "oversized_block_policy": "sentence_or_line_then_utf8_safe_token_fallback_v1",
         "source_input": Path(source_input).as_posix(),
         "documents": statistics["documents"],
         "chunks": statistics["chunks"],
     }
     _write_json(output_dir / "manifest.json", manifest)
     _write_json(output_dir / "stats.json", statistics)
-
-
-def read_chunks_jsonl(path: Path) -> list[Chunk]:
-    chunks: list[Chunk] = []
-    with path.open(encoding="utf-8") as stream:
-        for line_number, line in enumerate(stream, start=1):
-            if not line.strip():
-                continue
-            try:
-                chunks.append(Chunk.from_dict(json.loads(line)))
-            except (json.JSONDecodeError, KeyError, TypeError) as error:
-                raise ValueError(f"Invalid chunk JSONL at {path}:{line_number}: {error}") from error
-    return chunks

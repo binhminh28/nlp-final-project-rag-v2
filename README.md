@@ -364,7 +364,90 @@ Phương pháp này không sử dụng LLM.
 
 ---
 
+The repository implementation uses `tiktoken:cl100k_base` with a 512-token
+maximum and no content overlap. A Markdown heading-stack policy (pop levels
+greater than or equal to the incoming level) assigns every block to a local
+section and retains the full heading path as metadata. Sibling sections are
+never merged. Within a section, fitting blocks remain atomic and are packed
+greedily in source order. Oversized prose uses normalized sentence boundaries;
+code, lists, tables, and custom blocks use line/item/row boundaries; a strict
+UTF-8-safe token fallback handles a single oversized sentence or line. Exact
+block/fragment provenance supports lossless corpus validation without inventing
+fixed-stream token spans.
+
+Run the strategy with:
+
+```bash
+python -m rag_chunking.cli.chunk_structure \
+  --input data/processed/angular/documents.jsonl \
+  --output data/chunks/angular/structure_aware \
+  --max-chunk-tokens 512
+```
+
+The deterministic output directory contains `chunks.jsonl`, `manifest.json`,
+and `stats.json`.
+
+---
+
 ## 6.3 Prompt-based Hierarchical Chunking
+
+> **Implemented strategy (`prompt_based_v1`).** The LLM is used only as a
+> boundary planner over normalized, source-ordered blocks. It returns strict JSON
+> contiguous block ranges and never authoritative chunk text. Local code validates
+> complete coverage, slices exact normalized source, and enforces the 512-token
+> maximum. Prompt groups may cross heading boundaries; this is recorded in chunk
+> metadata. The older design discussion below is retained as project background.
+
+The implemented pipeline is:
+
+```text
+normalized blocks -> bounded planner batches -> strict JSON block ranges
+                  -> exact local slicing -> deterministic token enforcement
+                  -> provenance validation -> artifacts
+```
+
+Oversized prose/blockquote blocks split on sentence boundaries; code, lists,
+tables, and custom blocks split on lines. An indivisible oversized unit uses the
+existing UTF-8-safe token fallback. No table headers or source text are generated.
+
+The live adapter uses OpenRouter's OpenAI-compatible Chat Completions transport
+and reads `OPENROUTER_API_KEY` from the environment or a project-root `.env`.
+Transport compatibility does not change the experiment provider identity:
+the provider is `openrouter` and the default model is
+`deepseek/deepseek-v4-flash-0731`. The base URL defaults to
+`https://openrouter.ai/api/v1`. Tests inject a fake planner and require no
+network. Temperature is `0`, seed is `null` and is not sent, prompt version is
+`prompt_based_v1`, schema version is `prompt_boundary_plan_v1`, and two retries
+follow an invalid initial response. Retry exhaustion visibly fails the document.
+
+The client first requests strict JSON Schema output. If the routed capability
+rejects that request format, it explicitly retries the transport request in
+prompt-enforced JSON-only mode; the same strict local parser and complete-range
+validator remain authoritative. The selected mode and any capability fallback
+are recorded in cache and chunk provenance.
+
+```bash
+python -m rag_chunking.cli.chunk_prompt \
+  --input data/processed/angular/documents.jsonl \
+  --output data/chunks/angular/prompt_based \
+  --cache data/chunks/angular/prompt_based/cache \
+  --provider openrouter \
+  --model deepseek/deepseek-v4-flash-0731 \
+  --base-url https://openrouter.ai/api/v1
+```
+
+Cache identity includes document and normalized-source hashes, all relevant
+model settings, prompt/schema versions, and the candidate representation. Valid
+entries are reused; corrupt or schema-invalid entries fail clearly.
+`--force-refresh` explicitly bypasses cache and `--limit N` supports development
+runs. Artifacts are `chunks.jsonl`, `manifest.json`, and `stats.json` beneath
+`data/chunks/angular/prompt_based/`, already covered by `.gitignore`.
+
+Validation checks IDs, indices, hard token limits, exact block/character
+coverage, source order, Unicode, source hashes, and planner provenance. Boundaries
+remain model/prompt dependent, while cached successful responses make resolved
+runs reproducible. Planning batches cap context and create hard planning-window
+boundaries. Retrieval quality has not been evaluated; no superiority is claimed.
 
 Phương pháp này lấy ý tưởng từ HiChunk nhưng **không fine-tune model**.
 

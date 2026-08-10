@@ -15,6 +15,8 @@ test = ["pytest>=8,<10"]
 [project.scripts]
 preprocess-angular = "rag_chunking.cli.preprocess:main"
 chunk-fixed = "rag_chunking.cli.chunk_fixed:main"
+chunk-structure = "rag_chunking.cli.chunk_structure:main"
+chunk-prompt = "rag_chunking.cli.chunk_prompt:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

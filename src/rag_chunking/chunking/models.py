@@ -15,8 +15,8 @@ class Chunk:
     relative_path: str
     chunk_index: int
     text: str
-    token_start: int
-    token_end: int
+    token_start: int | None
+    token_end: int | None
     token_count: int
     chunk_size: int
     chunk_overlap: int

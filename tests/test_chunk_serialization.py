@@ -49,3 +49,4 @@ def test_artifacts_are_deterministic_and_readable(tmp_path: Path) -> None:
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["stride"] == 448
     assert manifest["tokenizer"] == "tiktoken:cl100k_base"
+    assert manifest["boundary_policy"] == "utf8_safe_minimal_backoff"
