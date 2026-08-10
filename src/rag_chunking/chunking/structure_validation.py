@@ -8,9 +8,9 @@ from collections import Counter, defaultdict
 from rag_chunking.data.models import NormalizedDocument
 
 from .models import Chunk
-from .structure_aware import StructureAwareChunkingConfig, build_sections
+from .structure_aware import StructureAwareChunker, StructureAwareChunkingConfig, build_sections
 from .tokenizer import TiktokenTokenizer
-from .validation import ChunkValidationReport
+from .validation import ChunkValidationReport, validate_unified_chunk_contract
 
 
 def validate_structure_aware_chunks(
@@ -20,6 +20,7 @@ def validate_structure_aware_chunks(
     tokenizer: TiktokenTokenizer,
 ) -> ChunkValidationReport:
     report = ChunkValidationReport()
+    report.errors.extend(validate_unified_chunk_contract(documents, chunks))
     by_doc: dict[str, list[Chunk]] = defaultdict(list)
     for chunk in chunks:
         by_doc[chunk.doc_id].append(chunk)
@@ -41,15 +42,28 @@ def validate_structure_aware_chunks(
             f"{document.doc_id}::section::{section.section_index:06d}": section
             for section in build_sections(document)
         }
+        expected_hierarchy = {
+            item.chunk_id: (item.parent_id, item.children_ids)
+            for item in StructureAwareChunker(config, tokenizer).chunk(document)
+        }
         coverage: dict[int, list[tuple[int, int, int]]] = defaultdict(list)
         contextual_headings: Counter[int] = Counter()
         previous_position = (-1, -1)
         for index, chunk in enumerate(document_chunks):
+            try:
+                chunk.validate()
+            except ValueError:
+                continue
             prefix = f"{document.doc_id} chunk {index}"
             if chunk.chunk_index != index:
                 report.errors.append(f"{prefix}: non-contiguous chunk_index {chunk.chunk_index}")
             if chunk.chunk_id != f"{document.doc_id}::structure::{index:06d}":
                 report.errors.append(f"{prefix}: non-deterministic chunk_id")
+            expected_links = expected_hierarchy.get(chunk.chunk_id)
+            if expected_links is not None and (
+                chunk.parent_id != expected_links[0] or chunk.children_ids != expected_links[1]
+            ):
+                report.errors.append(f"{prefix}: incorrect hierarchy links")
             if chunk.strategy != "structure_aware":
                 report.errors.append(f"{prefix}: incorrect strategy")
             if chunk.token_start is not None or chunk.token_end is not None:
@@ -59,6 +73,8 @@ def validate_structure_aware_chunks(
                 report.errors.append(f"{prefix}: empty text or incorrect token_count")
             if actual_tokens > config.max_chunk_tokens:
                 report.errors.append(f"{prefix}: exceeds max token budget ({actual_tokens})")
+            if chunk.chunk_size != config.max_chunk_tokens:
+                report.errors.append(f"{prefix}: incorrect chunk token budget")
             if chunk.chunk_overlap != 0:
                 report.errors.append(f"{prefix}: non-zero overlap")
             if chunk.tokenizer != tokenizer.name:
@@ -77,6 +93,9 @@ def validate_structure_aware_chunks(
                     report.errors.append(f"{prefix}: incorrect section_path")
                 if chunk.metadata.get("heading_levels") != expected_levels:
                     report.errors.append(f"{prefix}: incorrect heading_levels")
+                expected_level = expected_levels[-1] if expected_levels else 0
+                if chunk.title_path != expected_path or chunk.level != expected_level:
+                    report.errors.append(f"{prefix}: incorrect unified hierarchy fields")
             omitted = chunk.metadata.get("context_heading_block_index")
             if isinstance(omitted, int):
                 contextual_headings[omitted] += 1
@@ -85,7 +104,7 @@ def validate_structure_aware_chunks(
                 block_index = item.get("source_block_index")
                 start = item.get("char_start")
                 end = item.get("char_end")
-                if not all(isinstance(value, int) for value in (block_index, start, end)):
+                if not all(type(value) is int for value in (block_index, start, end)):
                     report.errors.append(f"{prefix}: malformed block fragment provenance")
                     continue
                 if not 0 <= block_index < len(document.blocks):

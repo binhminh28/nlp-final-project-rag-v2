@@ -9,8 +9,23 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from .models import validate_json_value
+
 
 CACHE_VERSION = "prompt_response_cache_v2"
+
+
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"non-standard JSON constant {value}")
+
+
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key {key!r}")
+        result[key] = value
+    return result
 
 
 class CachedPlannerResponse:
@@ -20,7 +35,10 @@ class CachedPlannerResponse:
 
 
 def canonical_json(value: object) -> str:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    validate_json_value(value)
+    return json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
+    )
 
 
 def request_digest(request: dict[str, Any]) -> str:
@@ -37,8 +55,12 @@ class PromptResponseCache:
         if not path.exists():
             return None
         try:
-            value = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as error:
+            value = json.loads(
+                path.read_text(encoding="utf-8"),
+                parse_constant=_reject_json_constant,
+                object_pairs_hook=_unique_json_object,
+            )
+        except (OSError, json.JSONDecodeError, ValueError) as error:
             raise ValueError(f"Corrupt prompt cache entry {path}: {error}") from error
         if (
             not isinstance(value, dict)
@@ -54,6 +76,8 @@ class PromptResponseCache:
     def put(
         self, request: dict[str, Any], response: str, response_metadata: dict[str, Any] | None = None
     ) -> None:
+        validate_json_value(request, "request")
+        validate_json_value(response_metadata or {}, "response_metadata")
         digest = request_digest(request)
         self.directory.mkdir(parents=True, exist_ok=True)
         value = {
@@ -63,7 +87,10 @@ class PromptResponseCache:
             "response": response,
             "response_metadata": response_metadata or {},
         }
-        data = (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
+        data = (
+            json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False)
+            + "\n"
+        ).encode("utf-8")
         handle, temp_name = tempfile.mkstemp(prefix=f".{digest}.", suffix=".tmp", dir=self.directory)
         try:
             with os.fdopen(handle, "wb") as stream:

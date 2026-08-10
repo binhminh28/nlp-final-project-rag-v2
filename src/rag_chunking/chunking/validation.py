@@ -25,6 +25,47 @@ class ChunkValidationReport:
         return not self.errors
 
 
+def validate_unified_chunk_contract(
+    documents: list[NormalizedDocument], chunks: list[Chunk]
+) -> list[str]:
+    """Validate schema rules shared by every chunking strategy."""
+
+    errors: list[str] = []
+    documents_by_id = {document.doc_id: document for document in documents}
+    chunks_by_id = {chunk.chunk_id: chunk for chunk in chunks}
+    for chunk in chunks:
+        prefix = f"{chunk.doc_id} chunk {chunk.chunk_index}"
+        try:
+            chunk.validate()
+        except ValueError as error:
+            errors.append(f"{prefix}: invalid unified chunk: {error}")
+            continue
+        document = documents_by_id.get(chunk.doc_id)
+        if document is None:
+            continue
+        if (
+            chunk.source != document.source
+            or chunk.relative_path != document.relative_path
+            or chunk.metadata.get("source_sha256") != document.source_sha256
+        ):
+            errors.append(f"{prefix}: incorrect source provenance")
+        if chunk.parent_id == chunk.chunk_id or chunk.chunk_id in chunk.children_ids:
+            errors.append(f"{prefix}: self-referential hierarchy")
+        if chunk.parent_id is not None:
+            parent = chunks_by_id.get(chunk.parent_id)
+            if parent is None:
+                errors.append(f"{prefix}: parent_id does not resolve")
+            elif parent.doc_id != chunk.doc_id or chunk.chunk_id not in parent.children_ids:
+                errors.append(f"{prefix}: parent relationship is not reciprocal in the same document")
+        for child_id in chunk.children_ids:
+            child = chunks_by_id.get(child_id)
+            if child is None:
+                errors.append(f"{prefix}: child id does not resolve: {child_id}")
+            elif child.doc_id != chunk.doc_id or child.parent_id != chunk.chunk_id:
+                errors.append(f"{prefix}: child relationship is not reciprocal in the same document")
+    return errors
+
+
 def validate_fixed_size_chunks(
     documents: list[NormalizedDocument],
     chunks: list[Chunk],
@@ -32,6 +73,7 @@ def validate_fixed_size_chunks(
     tokenizer: TiktokenTokenizer,
 ) -> ChunkValidationReport:
     report = ChunkValidationReport()
+    report.errors.extend(validate_unified_chunk_contract(documents, chunks))
     by_doc: dict[str, list[Chunk]] = defaultdict(list)
     for chunk in chunks:
         by_doc[chunk.doc_id].append(chunk)
@@ -68,12 +110,18 @@ def validate_fixed_size_chunks(
         covered_until = 0
         previous_end = 0
         for index, chunk in enumerate(document_chunks):
+            try:
+                chunk.validate()
+            except ValueError:
+                continue
             expected_window = expected_windows[index] if index < len(expected_windows) else None
             expected_start = expected_window.token_start if expected_window else None
             expected_end = expected_window.token_end if expected_window else None
             prefix = f"{document.doc_id} chunk {index}"
             if chunk.chunk_index != index:
                 report.errors.append(f"{prefix}: non-contiguous chunk_index {chunk.chunk_index}")
+            if chunk.chunk_id != f"{document.doc_id}::fixed::{index:06d}":
+                report.errors.append(f"{prefix}: non-deterministic chunk_id")
             if chunk.token_start != expected_start or chunk.token_end != expected_end:
                 report.errors.append(
                     f"{prefix}: span [{chunk.token_start},{chunk.token_end}) != "
@@ -127,14 +175,17 @@ def validate_fixed_size_chunks(
                         f"{prefix}: incorrect {key} metadata "
                         f"{chunk.metadata.get(key)!r} != {expected_value!r}"
                     )
-            if (
-                chunk.doc_id != document.doc_id
-                or chunk.source != document.source
-                or chunk.relative_path != document.relative_path
-            ):
-                report.errors.append(f"{prefix}: incorrect source metadata")
             if chunk.strategy != "fixed_size":
                 report.errors.append(f"{prefix}: incorrect strategy {chunk.strategy}")
+            if chunk.chunk_size != config.chunk_size or chunk.chunk_overlap != config.chunk_overlap:
+                report.errors.append(f"{prefix}: incorrect chunk configuration")
+            if (
+                chunk.level != 0
+                or chunk.parent_id is not None
+                or chunk.children_ids
+                or chunk.title_path
+            ):
+                report.errors.append(f"{prefix}: fixed-size chunk has hierarchy data")
             if chunk.tokenizer != tokenizer.name:
                 report.errors.append(f"{prefix}: incorrect tokenizer {chunk.tokenizer}")
             previous_end = chunk.token_end

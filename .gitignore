@@ -14,8 +14,7 @@ data/processed/angular/*.json
 data/processed/angular/*.jsonl
 
 # Reproducible generated chunk artifacts
-/data/chunks/
-/data/raw/
+/data
 
 # Environment files
 .env

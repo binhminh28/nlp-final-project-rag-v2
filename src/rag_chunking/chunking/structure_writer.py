@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -11,12 +10,7 @@ from rag_chunking.data.models import NORMALIZED_SCHEMA_VERSION
 from .models import Chunk
 from .structure_aware import StructureAwareChunkingConfig
 from .tokenizer import TiktokenTokenizer
-
-
-def _write_json(path: Path, value: dict[str, Any]) -> None:
-    with path.open("w", encoding="utf-8", newline="\n") as stream:
-        json.dump(value, stream, ensure_ascii=False, sort_keys=True, indent=2)
-        stream.write("\n")
+from .writer import _write_text, serialize_chunks_jsonl, serialize_json
 
 
 def write_structure_aware_artifacts(
@@ -27,11 +21,6 @@ def write_structure_aware_artifacts(
     statistics: dict[str, Any],
     source_input: str,
 ) -> None:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    with (output_dir / "chunks.jsonl").open("w", encoding="utf-8", newline="\n") as stream:
-        for chunk in chunks:
-            stream.write(json.dumps(chunk.to_dict(), ensure_ascii=False, sort_keys=True, separators=(",", ":")))
-            stream.write("\n")
     manifest = {
         "schema_version": 1,
         "source_schema_version": NORMALIZED_SCHEMA_VERSION,
@@ -48,5 +37,11 @@ def write_structure_aware_artifacts(
         "documents": statistics["documents"],
         "chunks": statistics["chunks"],
     }
-    _write_json(output_dir / "manifest.json", manifest)
-    _write_json(output_dir / "stats.json", statistics)
+    serialized = {
+        "chunks.jsonl": serialize_chunks_jsonl(chunks),
+        "manifest.json": serialize_json(manifest),
+        "stats.json": serialize_json(statistics),
+    }
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for name, value in serialized.items():
+        _write_text(output_dir / name, value)

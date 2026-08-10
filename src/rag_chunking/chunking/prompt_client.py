@@ -15,7 +15,7 @@ from .prompt_safety import validate_outbound_payload
 
 
 DEFAULT_PROVIDER = "openrouter"
-DEFAULT_MODEL = "deepseek/deepseek-v4-flash-0731"
+DEFAULT_MODEL = "deepseek/deepseek-v4-flash-0731:nitro"
 DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 STRUCTURED_OUTPUT_POLICY = "json_schema_then_prompt_json_v1"
 

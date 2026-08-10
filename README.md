@@ -428,7 +428,7 @@ The live adapter uses OpenRouter's OpenAI-compatible Chat Completions transport
 and reads `OPENROUTER_API_KEY` from the environment or a project-root `.env`.
 Transport compatibility does not change the experiment provider identity:
 the provider is `openrouter` and the default model is
-`deepseek/deepseek-v4-flash-0731`. The base URL defaults to
+`deepseek/deepseek-v4-flash-0731:nitro`. The base URL defaults to
 `https://openrouter.ai/api/v1`. Tests inject a fake planner and require no
 network. Temperature is `0`, seed is `null` and is not sent, prompt version is
 `prompt_based_v2`, schema version is `prompt_boundary_plan_v1`, and two retries
@@ -446,7 +446,7 @@ python -m rag_chunking.cli.chunk_prompt \
   --output data/chunks/angular/prompt_based \
   --cache data/chunks/angular/prompt_based/cache \
   --provider openrouter \
-  --model deepseek/deepseek-v4-flash-0731 \
+  --model deepseek/deepseek-v4-flash-0731:nitro \
   --base-url https://openrouter.ai/api/v1
 ```
 

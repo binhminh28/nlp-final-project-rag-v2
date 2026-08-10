@@ -9,11 +9,11 @@ from typing import Iterable
 from rag_chunking.data.models import NormalizedDocument
 
 from .models import Chunk
-from .prompt_based import PromptBasedChunkingConfig
+from .prompt_based import PromptBasedChunkingConfig, _heading_context
 from .prompt_cache import canonical_json
 from .prompt_client import PlannerModelConfig
 from .tokenizer import TiktokenTokenizer
-from .validation import ChunkValidationReport
+from .validation import ChunkValidationReport, validate_unified_chunk_contract
 
 
 def _render(document: NormalizedDocument, fragments: Iterable[dict[str, object]]) -> str:
@@ -37,6 +37,7 @@ def validate_prompt_based_chunks(
     failed_document_ids: set[str] | None = None,
 ) -> ChunkValidationReport:
     report = ChunkValidationReport()
+    report.errors.extend(validate_unified_chunk_contract(documents, chunks))
     failed = failed_document_ids or set()
     by_doc: dict[str, list[Chunk]] = defaultdict(list)
     for chunk in chunks:
@@ -61,9 +62,14 @@ def validate_prompt_based_chunks(
             report.errors.append(f"Non-empty document has no chunks: {document.doc_id}")
             continue
         coverage: dict[int, list[tuple[int, int]]] = defaultdict(list)
+        heading_context = _heading_context(document)
         normalized_hash = hashlib.sha256(canonical_json(document.to_dict()).encode("utf-8")).hexdigest()
         previous_position = (-1, -1)
         for expected_index, chunk in enumerate(document_chunks):
+            try:
+                chunk.validate()
+            except ValueError:
+                continue
             prefix = f"{document.doc_id} chunk {expected_index}"
             if chunk.chunk_index != expected_index:
                 report.errors.append(f"{prefix}: non-contiguous chunk_index {chunk.chunk_index}")
@@ -71,6 +77,8 @@ def validate_prompt_based_chunks(
                 report.errors.append(f"{prefix}: non-deterministic chunk_id")
             if chunk.strategy != "prompt_based" or chunk.chunk_overlap != 0:
                 report.errors.append(f"{prefix}: incorrect strategy or overlap")
+            if chunk.chunk_size != config.max_chunk_tokens:
+                report.errors.append(f"{prefix}: incorrect chunk token budget")
             if chunk.token_start is not None or chunk.token_end is not None:
                 report.errors.append(f"{prefix}: fabricated token span")
             actual_tokens = len(tokenizer.encode(chunk.text))
@@ -140,6 +148,17 @@ def validate_prompt_based_chunks(
                 valid_fragments.append(fragment)
             if valid_fragments and chunk.text != _render(document, valid_fragments):
                 report.errors.append(f"{prefix}: text is not exact local source slicing")
+            block_indices = [int(item["source_block_index"]) for item in valid_fragments]
+            if block_indices:
+                expected_paths = chunk.metadata.get("section_paths")
+                if not isinstance(expected_paths, list) or not expected_paths:
+                    report.errors.append(f"{prefix}: missing section path provenance")
+                path, levels = heading_context[block_indices[0]]
+                expected_level = levels[-1] if levels else 0
+                if chunk.title_path != list(path) or chunk.level != expected_level:
+                    report.errors.append(f"{prefix}: incorrect unified hierarchy fields")
+            if chunk.parent_id is not None or chunk.children_ids:
+                report.errors.append(f"{prefix}: prompt chunk has unsupported hierarchy links")
 
         for block_index, block in enumerate(document.blocks):
             cursor = 0

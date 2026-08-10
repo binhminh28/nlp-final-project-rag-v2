@@ -60,7 +60,7 @@ def _document() -> NormalizedDocument:
 def test_openrouter_configuration_defaults() -> None:
     config = PlannerModelConfig()
     assert config.provider == DEFAULT_PROVIDER == "openrouter"
-    assert config.model == DEFAULT_MODEL == "deepseek/deepseek-v4-flash-0731"
+    assert config.model == DEFAULT_MODEL == "deepseek/deepseek-v4-flash-0731:nitro"
     assert config.base_url == DEFAULT_OPENROUTER_BASE_URL == "https://openrouter.ai/api/v1"
     assert config.seed is None
 
