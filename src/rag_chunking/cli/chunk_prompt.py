@@ -161,6 +161,9 @@ def main(argv: list[str] | None = None) -> int:
         write_prompt_based_artifacts(
             chunks, documents, args.output, config, model_config, assembly_chunker.tokenizer, stats, str(args.input)
         )
+        stale_failures = args.output / "planning_failures.json"
+        if stale_failures.exists():
+            stale_failures.unlink()
     except (OSError, ValueError) as error:
         print(f"ERROR: {error}")
         return 1

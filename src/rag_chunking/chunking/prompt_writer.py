@@ -86,6 +86,11 @@ def write_prompt_based_artifacts(
         "block_preview_tokens": config.block_preview_tokens,
         "cache_policy": {"version": CACHE_VERSION, "validated_reads": True, "default": "reuse"},
         "retry_policy": {"max_retries": config.max_retries, "on_exhaustion": "fail_document"},
+        "response_budget_policy": {
+            "base_max_response_tokens": model_config.max_response_tokens,
+            "on_empty_content_length": "double_with_cap",
+            "maximum_multiplier": 4,
+        },
         "packing_policy": "planner_contiguous_groups_then_local_greedy_v1",
         "oversized_block_policy": "sentence_or_line_then_utf8_safe_token_fallback_v1",
         "source_content_policy": "exact_normalized_source_slices_only",

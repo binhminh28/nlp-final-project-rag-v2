@@ -33,6 +33,16 @@ def prompt_corpus_statistics(
     planner_groups = {
         (chunk.doc_id, chunk.metadata["planner_group_index"]) for chunk in chunks
     }
+    budget_adjusted_batches = {
+        (chunk.doc_id, chunk.metadata["planner_batch_index"])
+        for chunk in chunks
+        if chunk.metadata.get("local_budget_adjustment") is not None
+    }
+    budget_adjustments = Counter(
+        int(chunk.metadata["local_budget_adjustment"]["used_max_response_tokens"])
+        for chunk in chunks
+        if chunk.metadata.get("local_budget_adjustment") is not None
+    )
     oversized_blocks = {
         (chunk.doc_id, fragment["source_block_index"])
         for chunk in chunks for fragment in chunk.metadata["block_fragments"]
@@ -100,6 +110,10 @@ def prompt_corpus_statistics(
         "structured_output_modes": dict(sorted(Counter(
             str(chunk.metadata["structured_output_mode"]) for chunk in chunks
         ).items())),
+        "planner_batches_with_output_budget_adjustment": len(budget_adjusted_batches),
+        "output_budget_adjusted_chunk_distribution": {
+            str(key): value for key, value in sorted(budget_adjustments.items())
+        },
     }
     return {
         "documents": len(documents),

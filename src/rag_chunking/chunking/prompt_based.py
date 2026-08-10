@@ -65,6 +65,10 @@ class PromptRunMetrics:
     http_429_responses: int = 0
     http_5xx_responses: int = 0
     network_errors: int = 0
+    empty_content_responses: int = 0
+    empty_content_retries: int = 0
+    local_budget_adjustments: int = 0
+    max_response_tokens_used: int = 0
     request_latencies: list[float] = field(default_factory=list)
 
     def operational_summary(self) -> dict[str, object]:
@@ -80,6 +84,10 @@ class PromptRunMetrics:
             "http_429_responses": self.http_429_responses,
             "http_5xx_responses": self.http_5xx_responses,
             "network_errors": self.network_errors,
+            "empty_content_responses": self.empty_content_responses,
+            "empty_content_retries": self.empty_content_retries,
+            "local_budget_adjustments": self.local_budget_adjustments,
+            "max_response_tokens_used": self.max_response_tokens_used,
             "latency_seconds": {
                 "min": min(latencies) if latencies else 0.0,
                 "mean": statistics.fmean(latencies) if latencies else 0.0,
@@ -231,6 +239,19 @@ class PromptBasedChunker:
             self.metrics.http_429_responses += int(values.get("http_429_responses", 0))
             self.metrics.http_5xx_responses += int(values.get("http_5xx_responses", 0))
             self.metrics.network_errors += int(values.get("network_errors", 0))
+            self.metrics.empty_content_responses += int(
+                values.get("empty_content_responses", 0)
+            )
+            self.metrics.empty_content_retries += int(
+                values.get("empty_content_retries", 0)
+            )
+            self.metrics.local_budget_adjustments += int(
+                values.get("local_budget_adjustments", 0)
+            )
+            self.metrics.max_response_tokens_used = max(
+                self.metrics.max_response_tokens_used,
+                int(values.get("max_response_tokens_used", 0)),
+            )
             latency = values.get("latency_seconds")
             if isinstance(latency, (int, float)):
                 self.metrics.request_latencies.append(float(latency))
@@ -502,6 +523,9 @@ class PromptBasedChunker:
                             "capability_fallback_used", False
                         ),
                         "resolved_model": resolved.response_metadata.get("resolved_model"),
+                        "local_budget_adjustment": resolved.response_metadata.get(
+                            "local_budget_adjustment"
+                        ),
                         "prompt_version": self.config.prompt_version,
                         "planner_schema_version": self.config.planner_schema_version,
                         "planner_request_sha256": resolved.request_sha256,

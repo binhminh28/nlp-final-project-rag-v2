@@ -14,6 +14,7 @@ from rag_chunking.chunking.prompt_client import (
     DEFAULT_PROVIDER,
     OpenRouterBoundaryPlanner,
     PlannerModelConfig,
+    PlannerTransportError,
 )
 from rag_chunking.chunking.prompt_config import load_project_dotenv
 from rag_chunking.chunking.prompt_statistics import prompt_corpus_statistics
@@ -166,6 +167,70 @@ def test_openrouter_retries_429_with_separate_transport_telemetry(
     assert response.operational_metadata["transport_calls"] == 2
     assert response.operational_metadata["transport_retries"] == 1
     assert response.operational_metadata["http_429_responses"] == 1
+
+
+def test_openrouter_retries_empty_content_and_records_diagnostics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+
+    def fake_urlopen(request: object, timeout: float) -> _Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return _Response({
+                "choices": [{
+                    "finish_reason": "length",
+                    "native_finish_reason": "max_tokens",
+                    "message": {"content": None},
+                }],
+                "usage": {
+                    "completion_tokens": 4096,
+                    "completion_tokens_details": {"reasoning_tokens": 4096},
+                },
+            })
+        return _Response({"choices": [{"message": {"content": '{"groups":[]}'}}]})
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    response = OpenRouterBoundaryPlanner(
+        api_key="secret-fixture", max_transport_retries=1, backoff_seconds=0
+    ).plan("system", "user", PlannerModelConfig())
+    assert calls == 2
+    assert response.operational_metadata["transport_calls"] == 2
+    assert response.operational_metadata["empty_content_responses"] == 1
+    assert response.operational_metadata["empty_content_retries"] == 1
+    assert response.operational_metadata["local_budget_adjustments"] == 1
+    assert response.operational_metadata["max_response_tokens_used"] == 8192
+    assert response.response_metadata["local_budget_adjustment"] == {
+        "reason": "empty_content_length",
+        "base_max_response_tokens": 4096,
+        "used_max_response_tokens": 8192,
+    }
+
+
+def test_openrouter_empty_content_exhaustion_has_non_secret_diagnostics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_urlopen(request: object, timeout: float) -> _Response:
+        return _Response({
+            "choices": [{"finish_reason": "length", "message": {"content": None}}],
+            "usage": {
+                "completion_tokens": 4096,
+                "completion_tokens_details": {"reasoning_tokens": 4096},
+            },
+        })
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    planner = OpenRouterBoundaryPlanner(
+        api_key="secret-fixture", max_transport_retries=1, backoff_seconds=0
+    )
+    with pytest.raises(PlannerTransportError, match="finish_reason='length'") as caught:
+        planner.plan("system", "user", PlannerModelConfig())
+    assert caught.value.telemetry["transport_calls"] == 2
+    assert caught.value.telemetry["empty_content_responses"] == 2
+    assert caught.value.telemetry["empty_content_retries"] == 1
+    assert caught.value.telemetry["local_budget_adjustments"] == 1
+    assert caught.value.telemetry["max_response_tokens_used"] == 8192
 
 
 def test_provider_identity_separates_cache_and_secret_never_serializes(tmp_path: Path) -> None:

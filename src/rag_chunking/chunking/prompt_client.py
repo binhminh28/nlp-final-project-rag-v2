@@ -141,11 +141,20 @@ class OpenRouterBoundaryPlanner:
             "http_429_responses": 0,
             "http_5xx_responses": 0,
             "network_errors": 0,
+            "empty_content_responses": 0,
+            "empty_content_retries": 0,
+            "local_budget_adjustments": 0,
+            "max_response_tokens_used": config.max_response_tokens,
         }
         started = time.monotonic()
         try:
-            body = self._post(structured_payload, config.timeout_seconds, telemetry)
-            response = self._extract(body, config.model, "json_schema", False)
+            response = self._complete(
+                structured_payload,
+                config,
+                telemetry,
+                response_mode="json_schema",
+                fallback_used=False,
+            )
         except _ResponseFormatUnsupported:
             fallback_payload = dict(base_payload)
             fallback_payload["messages"] = [
@@ -155,13 +164,14 @@ class OpenRouterBoundaryPlanner:
                     "content": user_prompt + "\nReturn exactly one JSON object and no prose or code fences.",
                 },
             ]
-            body = self._post(
+            response = self._complete(
                 fallback_payload,
-                config.timeout_seconds,
+                config,
                 telemetry,
+                response_mode="prompt_json",
+                fallback_used=True,
                 allow_format_fallback=False,
             )
-            response = self._extract(body, config.model, "prompt_json", True)
         telemetry["latency_seconds"] = time.monotonic() - started
         return PlannerResponse(
             text=response.text,
@@ -171,6 +181,73 @@ class OpenRouterBoundaryPlanner:
             capability_fallback_used=response.capability_fallback_used,
             response_metadata=response.response_metadata,
             operational_metadata=telemetry,
+        )
+
+    def _complete(
+        self,
+        payload: dict[str, object],
+        config: PlannerModelConfig,
+        telemetry: dict[str, int | float],
+        *,
+        response_mode: str,
+        fallback_used: bool,
+        allow_format_fallback: bool = True,
+    ) -> PlannerResponse:
+        """Retry successful HTTP responses whose assistant content is empty/null."""
+
+        last_error: _EmptyPlannerContent | None = None
+        working_payload = dict(payload)
+        base_budget = config.max_response_tokens
+        current_budget = base_budget
+        for attempt in range(self._max_transport_retries + 1):
+            body = self._post(
+                working_payload,
+                config.timeout_seconds,
+                telemetry,
+                allow_format_fallback=allow_format_fallback,
+            )
+            try:
+                response = self._extract(
+                    body, config.model, response_mode, fallback_used
+                )
+                if current_budget == base_budget:
+                    return response
+                metadata = dict(response.response_metadata)
+                metadata["local_budget_adjustment"] = {
+                    "reason": "empty_content_length",
+                    "base_max_response_tokens": base_budget,
+                    "used_max_response_tokens": current_budget,
+                }
+                return PlannerResponse(
+                    text=response.text,
+                    response_mode=response.response_mode,
+                    requested_model=response.requested_model,
+                    resolved_model=response.resolved_model,
+                    capability_fallback_used=response.capability_fallback_used,
+                    response_metadata=metadata,
+                )
+            except _EmptyPlannerContent as error:
+                last_error = error
+                telemetry["empty_content_responses"] += 1
+                if attempt >= self._max_transport_retries:
+                    raise PlannerTransportError(
+                        "OpenRouter returned empty assistant content after "
+                        f"{attempt + 1} attempts ({error.diagnostics()})",
+                        telemetry,
+                    ) from error
+                telemetry["empty_content_retries"] += 1
+                if error.finish_reason == "length":
+                    adjusted_budget = min(base_budget * 4, current_budget * 2)
+                    if adjusted_budget > current_budget:
+                        current_budget = adjusted_budget
+                        working_payload = {**working_payload, "max_tokens": current_budget}
+                        telemetry["local_budget_adjustments"] += 1
+                        telemetry["max_response_tokens_used"] = max(
+                            telemetry["max_response_tokens_used"], current_budget
+                        )
+                time.sleep(self._backoff_seconds * (2**attempt))
+        raise RuntimeError(
+            f"OpenRouter empty-content retry loop ended unexpectedly: {last_error}"
         )
 
     def _post(
@@ -238,11 +315,24 @@ class OpenRouterBoundaryPlanner:
         body: dict[str, Any], requested_model: str, response_mode: str, fallback_used: bool
     ) -> PlannerResponse:
         try:
-            content = body["choices"][0]["message"]["content"]
+            choice = body["choices"][0]
+            message = choice["message"]
+            content = message["content"]
         except (KeyError, IndexError, TypeError) as error:
             raise RuntimeError("OpenRouter response did not contain message content") from error
-        if not isinstance(content, str):
-            raise RuntimeError("OpenRouter response message content was not text")
+        if not isinstance(content, str) or not content.strip():
+            usage = body.get("usage") if isinstance(body.get("usage"), dict) else {}
+            details = (
+                usage.get("completion_tokens_details")
+                if isinstance(usage.get("completion_tokens_details"), dict)
+                else {}
+            )
+            raise _EmptyPlannerContent(
+                finish_reason=choice.get("finish_reason"),
+                native_finish_reason=choice.get("native_finish_reason"),
+                completion_tokens=usage.get("completion_tokens"),
+                reasoning_tokens=details.get("reasoning_tokens"),
+            )
         resolved_model = body.get("model") if isinstance(body.get("model"), str) else None
         metadata: dict[str, object] = {}
         if isinstance(body.get("id"), str):
@@ -259,6 +349,26 @@ class OpenRouterBoundaryPlanner:
 
 class _ResponseFormatUnsupported(RuntimeError):
     """The routed model/provider rejected required JSON-Schema parameters."""
+
+
+@dataclass(frozen=True, slots=True)
+class _EmptyPlannerContent(RuntimeError):
+    """A successful response envelope contained no usable assistant text."""
+
+    finish_reason: object = None
+    native_finish_reason: object = None
+    completion_tokens: object = None
+    reasoning_tokens: object = None
+
+    def diagnostics(self) -> str:
+        return ", ".join(
+            (
+                f"finish_reason={self.finish_reason!r}",
+                f"native_finish_reason={self.native_finish_reason!r}",
+                f"completion_tokens={self.completion_tokens!r}",
+                f"reasoning_tokens={self.reasoning_tokens!r}",
+            )
+        )
 
 
 class PlannerTransportError(RuntimeError):
