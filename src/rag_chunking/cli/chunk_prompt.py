@@ -17,6 +17,7 @@ from rag_chunking.chunking.prompt_client import (
 )
 from rag_chunking.chunking.prompt_config import load_project_dotenv
 from rag_chunking.chunking.prompt_statistics import prompt_corpus_statistics
+from rag_chunking.chunking.prompt_prompts import PROMPT_VERSION
 from rag_chunking.chunking.prompt_validation import validate_prompt_based_chunks
 from rag_chunking.chunking.prompt_writer import write_prompt_based_artifacts
 from rag_chunking.data.writer import read_documents_jsonl
@@ -38,7 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-retries", type=int, default=2)
     parser.add_argument("--max-chunk-tokens", type=int, default=512)
     parser.add_argument("--tokenizer", default="cl100k_base")
-    parser.add_argument("--prompt-version", default="prompt_based_v1")
+    parser.add_argument("--prompt-version", default=PROMPT_VERSION)
     parser.add_argument("--planner-input-tokens", type=int, default=12000)
     parser.add_argument("--block-preview-tokens", type=int, default=1024)
     parser.add_argument("--limit", type=int, help="Process only the first N documents")

@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from rag_chunking.data.models import NormalizedDocument
+from rag_chunking.data.models import NORMALIZED_SCHEMA_VERSION, NormalizedDocument
 
 from .models import Chunk
 from .prompt_based import PromptBasedChunkingConfig
@@ -40,6 +40,7 @@ def write_prompt_based_artifacts(
     corpus_hash = hashlib.sha256(canonical_json([document.to_dict() for document in documents]).encode("utf-8")).hexdigest()
     manifest = {
         "schema_version": 1,
+        "source_schema_version": NORMALIZED_SCHEMA_VERSION,
         "strategy": "prompt_based",
         "tokenizer": tokenizer.name,
         "max_chunk_tokens": config.max_chunk_tokens,

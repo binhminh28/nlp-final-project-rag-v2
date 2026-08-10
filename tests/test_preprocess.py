@@ -124,9 +124,12 @@ Keep this semantic documentation text.
 """
     blocks, _ = parse(markdown)
 
-    assert [block.type for block in blocks] == ["custom_block", "paragraph"]
-    assert blocks[0].text == "Important detail"
-    assert blocks[1].text == "Keep this semantic documentation text."
+    assert [block.type for block in blocks] == ["callout"]
+    assert blocks[0].text == "Keep this semantic documentation text."
+    assert blocks[0].metadata["callout_syntax"] == "docs-callout"
+    assert blocks[0].metadata["container_path"] == [
+        {"type": "callout", "title": "Important detail"}
+    ]
 
 
 def test_decorative_header_is_the_angular_page_heading() -> None:

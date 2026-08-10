@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from rag_chunking.data.models import NORMALIZED_SCHEMA_VERSION
+
 from .models import Chunk
 from .structure_aware import StructureAwareChunkingConfig
 from .tokenizer import TiktokenTokenizer
@@ -32,6 +34,7 @@ def write_structure_aware_artifacts(
             stream.write("\n")
     manifest = {
         "schema_version": 1,
+        "source_schema_version": NORMALIZED_SCHEMA_VERSION,
         "strategy": "structure_aware",
         "max_chunk_tokens": config.max_chunk_tokens,
         "tokenizer": tokenizer.name,

@@ -6,7 +6,7 @@ import hashlib
 from pathlib import Path
 
 from .models import NormalizedDocument
-from .preprocess import preprocess_markdown
+from .preprocess import preprocess_markdown_document
 
 
 def discover_markdown_files(input_dir: Path) -> list[Path]:
@@ -43,14 +43,14 @@ def load_document(path: Path, input_dir: Path, source: str = "angular") -> Norma
         raise UnicodeError(f"Expected UTF-8 Markdown: {relative_path}") from error
 
     doc_id = make_doc_id(relative_path, source)
-    blocks, front_matter = preprocess_markdown(markdown, doc_id=doc_id)
+    parsed = preprocess_markdown_document(markdown, doc_id=doc_id)
     return NormalizedDocument(
         doc_id=doc_id,
         source=source,
         relative_path=relative_path,
         filename=resolved_path.name,
         source_sha256=hashlib.sha256(raw_bytes).hexdigest(),
-        blocks=blocks,
-        front_matter=front_matter,
+        blocks=parsed.blocks,
+        front_matter=parsed.front_matter,
+        metadata=parsed.metadata,
     )
-

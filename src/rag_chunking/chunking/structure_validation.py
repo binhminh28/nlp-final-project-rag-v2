@@ -80,6 +80,7 @@ def validate_structure_aware_chunks(
             omitted = chunk.metadata.get("context_heading_block_index")
             if isinstance(omitted, int):
                 contextual_headings[omitted] += 1
+            valid_fragments: list[dict[str, object]] = []
             for item in chunk.metadata.get("block_fragments", []):
                 block_index = item.get("source_block_index")
                 start = item.get("char_start")
@@ -99,10 +100,26 @@ def validate_structure_aware_chunks(
                 if item.get("fragment_sha256") != expected_hash:
                     report.errors.append(f"{prefix}: fragment hash mismatch")
                 coverage[block_index].append((start, end, index))
+                valid_fragments.append(item)
                 position = (block_index, start)
                 if position < previous_position:
                     report.errors.append(f"{prefix}: source order regression")
                 previous_position = position
+            if valid_fragments:
+                pieces: list[str] = []
+                previous_block: int | None = None
+                for item in valid_fragments:
+                    block_index = int(item["source_block_index"])
+                    if previous_block is not None and previous_block != block_index:
+                        pieces.append("\n\n")
+                    pieces.append(
+                        document.blocks[block_index].text[
+                            int(item["char_start"]) : int(item["char_end"])
+                        ]
+                    )
+                    previous_block = block_index
+                if chunk.text != "".join(pieces):
+                    report.errors.append(f"{prefix}: text is not exact local source slicing")
 
         for block_index, block in enumerate(document.blocks):
             spans = sorted(coverage.get(block_index, []))

@@ -139,7 +139,9 @@ Technical Documents
 
 ## Input
 
-Sử dụng khoảng **10–12 tài liệu kỹ thuật thực tế**.
+Corpus hiện tại gồm **384 tài liệu Markdown của Angular**. Mỗi experiment phải
+pin cùng một corpus snapshot và `source_sha256`; nếu dùng subset thì phải lưu rõ
+danh sách đường dẫn trong experiment manifest.
 
 Ưu tiên tài liệu:
 
@@ -181,10 +183,10 @@ Pipeline:
 Markdown / HTML
       |
       v
-Remove navigation / footer / irrelevant elements
+CommonMark/GFM block parsing
       |
       v
-Normalize whitespace
+Angular docs-* normalization
       |
       v
 Extract structural blocks
@@ -200,12 +202,15 @@ Representation trung gian:
 
 ```json
 {
+  "schema_version": "normalized_document_v2",
   "doc_id": "doc01",
   "blocks": [
     {
       "type": "heading",
       "level": 1,
-      "text": "Authentication"
+      "text": "Authentication",
+      "source_line_start": 1,
+      "source_line_end": 1
     },
     {
       "type": "paragraph",
@@ -219,6 +224,13 @@ Representation trung gian:
   ]
 }
 ```
+
+Implementation v2 dùng `markdown-it-py` cho CommonMark/GFM và một adapter riêng
+cho Angular. Các block bổ sung gồm `callout`, `html_block`, `code_reference` và
+`custom_block`. Workflow/step/tab/card được giữ trong `container_path`; table có
+header/alignment/row metadata; link-reference definitions nằm ở document metadata
+thay vì bị đưa vào embedding text. Các `docs-code path="..."` chưa có source file
+được đánh dấu `resolved=false`, không giả lập nội dung code.
 
 **All methods must operate on the same normalized source content, but each chunking method may construct its own required intermediate representation.** Cụ thể:
 
@@ -391,12 +403,14 @@ and `stats.json`.
 
 ## 6.3 Prompt-based Hierarchical Chunking
 
-> **Implemented strategy (`prompt_based_v1`).** The LLM is used only as a
+> **Implemented strategy (`prompt_based_v2`).** The LLM is used only as a
 > boundary planner over normalized, source-ordered blocks. It returns strict JSON
 > contiguous block ranges and never authoritative chunk text. Local code validates
 > complete coverage, slices exact normalized source, and enforces the 512-token
-> maximum. Prompt groups may cross heading boundaries; this is recorded in chunk
-> metadata. The older design discussion below is retained as project background.
+> maximum. Candidates include compact container/table/list/callout metadata from
+> normalized schema v2. Prompt groups may cross heading boundaries; this is
+> recorded in chunk metadata. The older design discussion below is retained as
+> project background.
 
 The implemented pipeline is:
 
@@ -417,7 +431,7 @@ the provider is `openrouter` and the default model is
 `deepseek/deepseek-v4-flash-0731`. The base URL defaults to
 `https://openrouter.ai/api/v1`. Tests inject a fake planner and require no
 network. Temperature is `0`, seed is `null` and is not sent, prompt version is
-`prompt_based_v1`, schema version is `prompt_boundary_plan_v1`, and two retries
+`prompt_based_v2`, schema version is `prompt_boundary_plan_v1`, and two retries
 follow an invalid initial response. Retry exhaustion visibly fails the document.
 
 The client first requests strict JSON Schema output. If the routed capability

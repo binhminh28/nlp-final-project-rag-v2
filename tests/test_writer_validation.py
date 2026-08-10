@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from rag_chunking.data.loader import load_document
 from rag_chunking.data.validation import validate_corpus
 from rag_chunking.data.writer import read_documents_jsonl, write_processed_corpus
@@ -27,6 +29,7 @@ def test_write_read_and_repeat_are_deterministic(tmp_path: Path) -> None:
     assert read_documents_jsonl(output / "documents.jsonl")[0].to_dict() == document.to_dict()
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["statistics"]["documents"] == 1
+    assert manifest["schema_version"] == "normalized_document_v2"
 
 
 def test_validation_detects_duplicate_identity(tmp_path: Path) -> None:
@@ -39,3 +42,24 @@ def test_validation_detects_duplicate_identity(tmp_path: Path) -> None:
     assert not report.valid
     assert any("Duplicate doc_id" in error for error in report.errors)
     assert any("Duplicate relative_path" in error for error in report.errors)
+
+
+def test_reader_rejects_v1_normalized_artifacts(tmp_path: Path) -> None:
+    path = tmp_path / "documents.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "doc_id": "angular:old.md",
+                "source": "angular",
+                "relative_path": "old.md",
+                "filename": "old.md",
+                "source_sha256": "hash",
+                "blocks": [{"type": "paragraph", "text": "old"}],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="normalized_document_v1"):
+        read_documents_jsonl(path)

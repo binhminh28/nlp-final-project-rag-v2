@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass, field
 from typing import Iterable
 
@@ -117,6 +118,29 @@ def _line_spans(text: str) -> list[tuple[int, int]]:
     return spans
 
 
+def _list_item_spans(text: str) -> list[tuple[int, int]]:
+    """Keep continuation lines attached to their Markdown list item."""
+
+    lines = text.splitlines(keepends=True)
+    if not lines:
+        return [(0, len(text))]
+    item_re = re.compile(r"^[ \t]*(?:[-+*]|\d+[.)])[ \t]+")
+    spans: list[tuple[int, int]] = []
+    cursor = 0
+    current_start = 0
+    seen_item = False
+    for line in lines:
+        if item_re.match(line) and seen_item:
+            spans.append((current_start, cursor))
+            current_start = cursor
+        if item_re.match(line):
+            seen_item = True
+        cursor += len(line)
+    if current_start < len(text):
+        spans.append((current_start, len(text)))
+    return spans
+
+
 def _unicode_safe_token_spans(
     text: str, max_tokens: int, tokenizer: TiktokenTokenizer
 ) -> list[tuple[int, int]]:
@@ -187,9 +211,12 @@ def _split_reason(block_type: str) -> str:
     return {
         "paragraph": "oversized_paragraph_sentence_split",
         "blockquote": "oversized_blockquote_sentence_split",
+        "callout": "oversized_callout_sentence_split",
         "code_block": "oversized_code_line_split",
+        "code_reference": "oversized_code_reference_line_split",
         "list": "oversized_list_item_split",
         "table": "oversized_table_row_split",
+        "html_block": "oversized_html_line_split",
         "custom_block": "oversized_custom_line_split",
         "heading": "oversized_heading_line_split",
     }[block_type]
@@ -207,8 +234,19 @@ def split_block(
         return []
     if _token_count(block.text, tokenizer) <= max_tokens:
         return [BlockFragment(block_index, block.type, 0, len(block.text))]
-    if block.type in ("paragraph", "blockquote"):
+    if block.type in ("paragraph", "blockquote", "callout"):
         spans = _exact_sentence_spans(block) or _line_spans(block.text)
+    elif block.type == "list":
+        spans = []
+        for item_start, item_end in _list_item_spans(block.text):
+            item_text = block.text[item_start:item_end]
+            if _token_count(item_text, tokenizer) <= max_tokens:
+                spans.append((item_start, item_end))
+            else:
+                spans.extend(
+                    (item_start + line_start, item_start + line_end)
+                    for line_start, line_end in _line_spans(item_text)
+                )
     else:
         spans = _line_spans(block.text)
     reason = _split_reason(block.type)
@@ -318,6 +356,45 @@ def _fragment_metadata(document: NormalizedDocument, fragment: BlockFragment) ->
     }
 
 
+def _link_section_hierarchy(
+    sections: list[Section],
+    section_chunk_ids: dict[int, list[str]],
+    chunk_by_id: dict[str, Chunk],
+) -> None:
+    """Populate parent_id/children_ids purely from Section.path prefixes.
+
+    A section's immediate parent is the section whose path equals this
+    section's path with the last heading dropped -- unique because HeadingRef
+    carries the heading's block_index, so no two sections share a path. The
+    link is anchored on the parent's last generated chunk and the child's
+    first generated chunk (the two chunks adjacent to the section transition
+    in document order). Sections that produced zero chunks are left
+    unlinked rather than substituting a guessed anchor.
+
+    Sections with a path shorter than two headings never get a parent, even
+    when a same-document preamble section (path == ()) exists: that
+    zero-length path is "no heading yet", not an ancestor heading, so a
+    top-level (single-heading) section must stay root-level rather than
+    being attached to the preamble.
+    """
+
+    path_to_section_index = {section.path: section.section_index for section in sections}
+    for section in sections:
+        if len(section.path) < 2:
+            continue
+        parent_index = path_to_section_index.get(section.path[:-1])
+        if parent_index is None:
+            continue
+        child_ids = section_chunk_ids.get(section.section_index, [])
+        parent_ids = section_chunk_ids.get(parent_index, [])
+        if not child_ids or not parent_ids:
+            continue
+        child_chunk = chunk_by_id[child_ids[0]]
+        parent_chunk = chunk_by_id[parent_ids[-1]]
+        child_chunk.parent_id = parent_chunk.chunk_id
+        parent_chunk.children_ids.append(child_chunk.chunk_id)
+
+
 class StructureAwareChunker:
     strategy = "structure_aware"
 
@@ -331,7 +408,10 @@ class StructureAwareChunker:
 
     def chunk(self, document: NormalizedDocument) -> list[Chunk]:
         chunks: list[Chunk] = []
-        for section in build_sections(document):
+        sections = build_sections(document)
+        section_chunk_ids: dict[int, list[str]] = {}
+        for section in sections:
+            section_chunk_ids[section.section_index] = []
             section_id = f"{document.doc_id}::section::{section.section_index:06d}"
             for packed in _pack_section(document, section, self.config, self.tokenizer):
                 token_count = _token_count(packed.text, self.tokenizer)
@@ -394,26 +474,28 @@ class StructureAwareChunker:
                             "split_reason": first.split_reason,
                         }
                     )
-                chunks.append(
-                    Chunk(
-                        chunk_id=f"{document.doc_id}::structure::{index:06d}",
-                        strategy=self.strategy,
-                        doc_id=document.doc_id,
-                        source=document.source,
-                        relative_path=document.relative_path,
-                        chunk_index=index,
-                        text=packed.text,
-                        token_start=None,
-                        token_end=None,
-                        token_count=token_count,
-                        chunk_size=self.config.max_chunk_tokens,
-                        chunk_overlap=0,
-                        tokenizer=self.tokenizer.name,
-                        level=levels[-1] if levels else 0,
-                        title_path=path,
-                        metadata=metadata,
-                    )
+                chunk = Chunk(
+                    chunk_id=f"{document.doc_id}::structure::{index:06d}",
+                    strategy=self.strategy,
+                    doc_id=document.doc_id,
+                    source=document.source,
+                    relative_path=document.relative_path,
+                    chunk_index=index,
+                    text=packed.text,
+                    token_start=None,
+                    token_end=None,
+                    token_count=token_count,
+                    chunk_size=self.config.max_chunk_tokens,
+                    chunk_overlap=0,
+                    tokenizer=self.tokenizer.name,
+                    level=levels[-1] if levels else 0,
+                    title_path=path,
+                    metadata=metadata,
                 )
+                chunks.append(chunk)
+                section_chunk_ids[section.section_index].append(chunk.chunk_id)
+        chunk_by_id = {chunk.chunk_id: chunk for chunk in chunks}
+        _link_section_hierarchy(sections, section_chunk_ids, chunk_by_id)
         return chunks
 
     def chunk_corpus(self, documents: list[NormalizedDocument]) -> list[Chunk]:

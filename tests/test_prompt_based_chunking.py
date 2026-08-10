@@ -127,13 +127,34 @@ def test_cache_invalidates_on_source_prompt_and_model_configuration(tmp_path: Pa
     make_chunker(tmp_path, source_planner).chunk(document([paragraph("B")]))
     assert source_planner.calls == 1
     prompt_planner = FakePlanner()
-    make_chunker(tmp_path, prompt_planner, prompt_version="prompt_based_v2").chunk(base_doc)
+    make_chunker(tmp_path, prompt_planner, prompt_version="prompt_based_test_variant").chunk(base_doc)
     assert prompt_planner.calls == 1
     model_planner = FakePlanner()
     PromptBasedChunker(
         model_planner, tmp_path / "cache", model_config=PlannerModelConfig(provider="fake", model="v2")
     ).chunk(base_doc)
     assert model_planner.calls == 1
+
+
+def test_planner_candidates_include_compact_v2_structure_metadata(tmp_path: Path) -> None:
+    block = DocumentBlock(
+        type="table",
+        text="| Name |\n| --- |\n| A |",
+        metadata={
+            "header": ["Name"],
+            "column_count": 1,
+            "row_count": 1,
+            "container_path": [{"type": "step", "title": "Compare"}],
+        },
+    )
+    chunker = make_chunker(tmp_path, FakePlanner())
+
+    candidate = chunker._candidates(document([block]))[0]
+
+    assert candidate["structure"] == {
+        "container_path": [{"type": "step", "title": "Compare"}],
+        "table": {"header": ["Name"], "column_count": 1, "row_count": 1},
+    }
 
 
 @pytest.mark.parametrize("block_type", ["code_block", "list", "table", "custom_block"])

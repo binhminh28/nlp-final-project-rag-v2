@@ -160,6 +160,35 @@ def _heading_context(document: NormalizedDocument) -> dict[int, tuple[tuple[str,
     return result
 
 
+def _planner_structure(block: object) -> dict[str, Any]:
+    metadata = getattr(block, "metadata", {})
+    block_type = getattr(block, "type", "")
+    value: dict[str, Any] = {}
+    if metadata.get("container_path"):
+        value["container_path"] = metadata["container_path"]
+    if block_type == "table":
+        value["table"] = {
+            "header": metadata.get("header", []),
+            "column_count": metadata.get("column_count", 0),
+            "row_count": metadata.get("row_count", 0),
+        }
+    elif block_type == "list":
+        items = metadata.get("items", [])
+        value["list"] = {
+            "item_count": len(items),
+            "max_level": max((int(item.get("level", 0)) for item in items), default=0),
+            "nested_table_count": len(metadata.get("nested_tables", [])),
+        }
+    elif block_type == "callout":
+        value["callout_kind"] = metadata.get("callout_kind", "note")
+    elif block_type == "code_reference":
+        value["code_reference"] = {
+            "language": getattr(block, "language", None),
+            "resolved": metadata.get("resolved", False),
+        }
+    return value
+
+
 class PromptBasedChunker:
     strategy = "prompt_based"
 
@@ -253,6 +282,7 @@ class PromptBasedChunker:
                     "block_type": block.type,
                     "heading_path": list(path),
                     "heading_levels": list(levels),
+                    "structure": _planner_structure(block),
                     "token_count": token_count,
                     "text": preview,
                     "text_preview_truncated": truncated,

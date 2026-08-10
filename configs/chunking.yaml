@@ -1,0 +1,14 @@
+chunking:
+  enabled_strategies:
+    - fixed_size
+    - structure_aware
+
+  fixed_size:
+    chunk_size: 512
+    overlap: 64
+    tokenizer: cl100k_base
+
+  structure_aware:
+    max_chunk_tokens: 512
+    tokenizer: cl100k_base
+    preserve_heading_context: true

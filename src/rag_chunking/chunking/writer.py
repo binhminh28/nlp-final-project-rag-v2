@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from rag_chunking.data.models import NORMALIZED_SCHEMA_VERSION
+
 from .fixed_size import FixedSizeChunkingConfig
 from .models import Chunk
 from .tokenizer import TiktokenTokenizer
@@ -34,6 +36,7 @@ def write_fixed_size_artifacts(
             stream.write("\n")
     manifest = {
         "schema_version": 1,
+        "source_schema_version": NORMALIZED_SCHEMA_VERSION,
         "strategy": "fixed_size",
         "chunk_size": config.chunk_size,
         "chunk_overlap": config.chunk_overlap,

@@ -56,9 +56,12 @@ def run(input_dir: Path, output_dir: Path, *, fail_fast: bool = False) -> int:
         "heading",
         "paragraph",
         "code_block",
+        "code_reference",
         "list",
         "blockquote",
         "table",
+        "callout",
+        "html_block",
         "custom_block",
     ):
         print(f"{block_type.replace('_', ' ').title()} blocks: {counts[block_type]}")
@@ -69,6 +72,8 @@ def run(input_dir: Path, output_dir: Path, *, fail_fast: bool = False) -> int:
         for error in validation.errors:
             print(f"  - {error}", file=sys.stderr)
         return 1
+    for warning in validation.warnings:
+        print(f"WARNING: {warning}", file=sys.stderr)
     print("Validation: PASSED")
     return 0
 
@@ -80,4 +85,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

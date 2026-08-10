@@ -207,3 +207,19 @@ def test_structure_artifacts_are_deterministic_and_policy_identified(tmp_path: P
     assert manifest["overlap_policy"] == "none"
     assert manifest["sibling_section_merge_policy"] == "never"
     assert manifest["hierarchy_policy"] == "markdown_stack_pop_level_gte_current_v1"
+    assert manifest["source_schema_version"] == "normalized_document_v2"
+
+
+def test_structure_validation_rejects_text_that_disagrees_with_provenance() -> None:
+    doc = document([DocumentBlock(type="heading", text="H", level=1), paragraph("Body")])
+    chunker = StructureAwareChunker()
+    chunks = chunker.chunk(doc)
+    chunks[0].text += " corrupted"
+    chunks[0].token_count = len(chunker.tokenizer.encode(chunks[0].text))
+
+    report = validate_structure_aware_chunks(
+        [doc], chunks, chunker.config, chunker.tokenizer
+    )
+
+    assert not report.valid
+    assert any("exact local source slicing" in error for error in report.errors)

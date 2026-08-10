@@ -5,8 +5,9 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
+import re
 
-from .models import NormalizedDocument
+from .models import NORMALIZED_SCHEMA_VERSION, NormalizedDocument
 
 
 @dataclass(slots=True)
@@ -43,8 +44,15 @@ def validate_corpus(
         )
 
     for document in documents:
+        for warning in document.metadata.get("audit", {}).get("warnings", []):
+            report.warnings.append(f"{document.relative_path}: {warning}")
+        if document.schema_version != NORMALIZED_SCHEMA_VERSION:
+            report.errors.append(
+                f"Unsupported schema for {document.relative_path}: {document.schema_version}"
+            )
         if not document.blocks:
             report.errors.append(f"Empty normalized document: {document.relative_path}")
+        previous_line = 0
         for position, block in enumerate(document.blocks):
             if block.type == "heading" and (block.level is None or not 1 <= block.level <= 6):
                 report.errors.append(
@@ -53,6 +61,49 @@ def validate_corpus(
             if block.type == "code_block" and block.text is None:
                 report.errors.append(
                     f"Missing code text at {document.relative_path} block {position}"
+                )
+            if (block.source_line_start is None) != (block.source_line_end is None):
+                report.errors.append(
+                    f"Incomplete source line span at {document.relative_path} block {position}"
+                )
+            if block.source_line_start is not None and block.source_line_end is not None:
+                if block.source_line_start <= 0 or block.source_line_end < block.source_line_start:
+                    report.errors.append(
+                        f"Invalid source line span at {document.relative_path} block {position}"
+                    )
+                if block.source_line_start < previous_line:
+                    report.errors.append(
+                        f"Source block order regression at {document.relative_path} block {position}"
+                    )
+                previous_line = block.source_line_start
+            if block.type == "code_reference":
+                if not block.metadata.get("path") or block.metadata.get("resolved") is not False:
+                    report.errors.append(
+                        f"Invalid unresolved code reference at {document.relative_path} block {position}"
+                    )
+            if block.type == "table":
+                schema = block.metadata
+                if not isinstance(schema.get("header"), list) or not isinstance(
+                    schema.get("rows"), list
+                ):
+                    report.errors.append(
+                        f"Missing table schema at {document.relative_path} block {position}"
+                    )
+                header = schema.get("header", [])
+                rows = schema.get("rows", [])
+                if isinstance(header, list) and isinstance(rows, list) and any(
+                    not isinstance(row, list) or len(row) != len(header) for row in rows
+                ):
+                    report.errors.append(
+                        f"Unnormalized table width at {document.relative_path} block {position}"
+                    )
+            visible_for_tag_check = re.sub(r"`+[^`]*`+", "", block.text)
+            if (
+                block.type not in {"code_block", "html_block", "table"}
+                and "<docs-" in visible_for_tag_check
+            ):
+                report.errors.append(
+                    f"Raw Angular tag leaked at {document.relative_path} block {position}"
                 )
         restored = NormalizedDocument.from_dict(document.to_dict())
         if restored.to_dict() != document.to_dict():
@@ -69,6 +120,9 @@ def corpus_statistics(documents: list[NormalizedDocument]) -> dict[str, int]:
         "sentences": sum(
             len(block.sentences) for document in documents for block in document.blocks
         ),
+        "unresolved_code_references": sum(
+            block.type == "code_reference" for document in documents for block in document.blocks
+        ),
     }
 
 
@@ -81,4 +135,3 @@ def _report_duplicates(values: list[str], label: str, report: ValidationReport) 
     duplicates = sorted(value for value, count in Counter(values).items() if count > 1)
     if duplicates:
         report.errors.append(f"Duplicate {label}: {duplicates[:5]}")
-

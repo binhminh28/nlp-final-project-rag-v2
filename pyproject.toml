@@ -7,7 +7,11 @@ name = "rag-chunking"
 version = "0.1.0"
 description = "Deterministic preprocessing for structure-aware RAG experiments"
 requires-python = ">=3.11"
-dependencies = ["tiktoken==0.12.0"]
+dependencies = [
+    "markdown-it-py==4.2.0",
+    "tiktoken==0.12.0",
+    "pyyaml==6.0.3",
+]
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]
@@ -17,6 +21,7 @@ preprocess-angular = "rag_chunking.cli.preprocess:main"
 chunk-fixed = "rag_chunking.cli.chunk_fixed:main"
 chunk-structure = "rag_chunking.cli.chunk_structure:main"
 chunk-prompt = "rag_chunking.cli.chunk_prompt:main"
+chunk-documents = "rag_chunking.cli.chunk_documents:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
