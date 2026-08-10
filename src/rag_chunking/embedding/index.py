@@ -128,4 +128,4 @@ class LocalCosineIndex:
             norm = math.sqrt(sum(value * value for value in candidate))
             score = sum(left * right for left, right in zip(vector, candidate, strict=True)) / (query_norm * norm) if norm else -1.0
             hits.append(SearchHit(entry["index_id"], payload["chunk_id"], score, payload))
-        return sorted(hits, key=lambda hit: (-hit.score, hit.index_id))[:k]
+        return sorted(hits, key=lambda hit: (-hit.score, hit.chunk_id))[:k]

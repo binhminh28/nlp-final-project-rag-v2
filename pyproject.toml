@@ -24,6 +24,8 @@ chunk-prompt = "rag_chunking.cli.chunk_prompt:main"
 chunk-documents = "rag_chunking.cli.chunk_documents:main"
 embed-chunks = "rag_chunking.cli.embed_chunks:main"
 build-vector-index = "rag_chunking.cli.build_index:main"
+retrieve = "rag_chunking.cli.retrieve:main"
+evaluate-retrieval = "rag_chunking.cli.evaluate_retrieval:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
