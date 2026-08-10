@@ -22,7 +22,7 @@ def discover_markdown_files(input_dir: Path) -> list[Path]:
 def make_doc_id(relative_path: str, source: str = "angular") -> str:
     """Build a readable identifier independent of host paths and scan order."""
 
-    canonical_path = Path(relative_path).as_posix()
+    canonical_path = Path(relative_path.replace("\\", "/")).as_posix()
     return f"{source}:{canonical_path}"
 
 

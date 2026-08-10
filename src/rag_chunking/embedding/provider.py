@@ -67,8 +67,11 @@ class OpenRouterEmbeddingProvider:
         if timeout_seconds <= 0 or max_retries < 0 or backoff_seconds < 0:
             raise ValueError("invalid transport settings")
         self.config = config
-        self._api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
-        self._base_url = (base_url or os.environ.get("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1").rstrip("/")
+        configured_key = api_key or os.environ.get("OPENROUTER_API_KEY")
+        self._api_key = configured_key.strip() if configured_key else None
+        self._base_url = (
+            base_url or os.environ.get("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+        ).strip().rstrip("/")
         self._timeout = timeout_seconds
         self._max_retries = max_retries
         self._backoff = backoff_seconds

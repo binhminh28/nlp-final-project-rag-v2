@@ -42,6 +42,25 @@ def test_provider_retries_429_and_preserves_response_order(monkeypatch) -> None:
     assert provider.calls == 2 and provider.retries == 1 and provider.input_tokens == 2
 
 
+def test_provider_strips_environment_whitespace(monkeypatch) -> None:
+    captured = {}
+
+    def urlopen(request, **kwargs):
+        captured["url"] = request.full_url
+        captured["authorization"] = request.get_header("Authorization")
+        return _Response({"data": [{"index": 0, "embedding": [1.0, 0.0, 0.0]}]})
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "secret\r")
+    monkeypatch.setenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1\r")
+    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    provider = OpenRouterEmbeddingProvider(_config())
+    provider.embed_texts(["a"])
+    assert captured == {
+        "url": "https://openrouter.ai/api/v1/embeddings",
+        "authorization": "Bearer secret",
+    }
+
+
 @pytest.mark.parametrize("vectors, message", [
     ([[1.0, 2.0, 3.0]], "response count"),
     ([[1.0, 2.0], [1.0, 2.0]], "dimension"),
