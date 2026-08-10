@@ -23,6 +23,7 @@ from .prompt_client import (
 )
 from .prompt_prompts import PROMPT_VERSION, SYSTEM_PROMPT
 from .prompt_schema import PLANNER_SCHEMA_VERSION, BoundaryPlan, PlanValidationError, parse_boundary_plan
+from .serialization import BLOCK_SEPARATOR
 from .structure_aware import BlockFragment, build_sections, split_block
 from .tokenizer import TiktokenTokenizer
 
@@ -142,8 +143,15 @@ def _render_fragments(document: NormalizedDocument, fragments: Iterable[BlockFra
     pieces: list[str] = []
     previous: int | None = None
     for fragment in fragments:
-        if previous is not None and previous != fragment.block_index:
-            pieces.append("\n\n")
+        if previous is None:
+            # The separator before every non-first block belongs to the source
+            # slice that starts at that block. This keeps independently planned
+            # groups and locally packed chunks a lossless partition of the
+            # canonical NormalizedDocument linearization.
+            if fragment.block_index > 0 and fragment.char_start == 0:
+                pieces.append(BLOCK_SEPARATOR)
+        elif previous != fragment.block_index:
+            pieces.append(BLOCK_SEPARATOR)
         block = document.blocks[fragment.block_index]
         pieces.append(block.text[fragment.char_start : fragment.char_end])
         previous = fragment.block_index
@@ -399,13 +407,28 @@ class PromptBasedChunker:
     def _pack_group(
         self, document: NormalizedDocument, start: int, end: int
     ) -> list[list[BlockFragment]]:
-        fragments = [
-            fragment
-            for block_index in range(start, end + 1)
-            for fragment in split_block(
-                document.blocks[block_index], block_index, self.config.max_chunk_tokens, self.tokenizer
+        separator_tokens = len(self.tokenizer.encode(BLOCK_SEPARATOR))
+        fragments: list[BlockFragment] = []
+        for block_index in range(start, end + 1):
+            block = document.blocks[block_index]
+            if not block.text:
+                # Empty normalized blocks still occupy a position in the
+                # canonical block-separated document. Retain a zero-length
+                # provenance fragment so their separator is not lost.
+                fragments.append(BlockFragment(block_index, block.type, 0, 0))
+                continue
+            # A chunk beginning at a non-first block owns its leading canonical
+            # separator, so reserve that budget before splitting the block.
+            block_budget = self.config.max_chunk_tokens
+            if block_index > 0:
+                block_budget -= separator_tokens
+                if block_budget <= 0:
+                    raise ValueError(
+                        "max_chunk_tokens cannot fit a canonical block separator and content"
+                    )
+            fragments.extend(
+                split_block(block, block_index, block_budget, self.tokenizer)
             )
-        ]
         packed: list[list[BlockFragment]] = []
         current: list[BlockFragment] = []
         for fragment in fragments:
@@ -496,6 +519,9 @@ class PromptBasedChunker:
                         "source_block_types": [document.blocks[item].type for item in block_indices],
                         "block_count": len(block_indices),
                         "block_fragments": block_metadata,
+                        "leading_block_separator": (
+                            fragments[0].block_index > 0 and fragments[0].char_start == 0
+                        ),
                         "section_paths": [list(item) for item in section_paths],
                         "crosses_section_boundary": len(section_paths) > 1,
                         "locally_adjusted": adjusted,

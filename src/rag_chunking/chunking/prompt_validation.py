@@ -12,6 +12,7 @@ from .models import Chunk
 from .prompt_based import PromptBasedChunkingConfig, _heading_context
 from .prompt_cache import canonical_json
 from .prompt_client import PlannerModelConfig
+from .serialization import BLOCK_SEPARATOR, document_to_text
 from .tokenizer import TiktokenTokenizer
 from .validation import ChunkValidationReport, validate_unified_chunk_contract
 
@@ -21,9 +22,13 @@ def _render(document: NormalizedDocument, fragments: Iterable[dict[str, object]]
     previous: int | None = None
     for fragment in fragments:
         index = int(fragment["source_block_index"])
-        if previous is not None and previous != index:
-            pieces.append("\n\n")
-        pieces.append(document.blocks[index].text[int(fragment["char_start"]) : int(fragment["char_end"])])
+        start = int(fragment["char_start"])
+        if previous is None:
+            if index > 0 and start == 0:
+                pieces.append(BLOCK_SEPARATOR)
+        elif previous != index:
+            pieces.append(BLOCK_SEPARATOR)
+        pieces.append(document.blocks[index].text[start : int(fragment["char_end"])])
         previous = index
     return "".join(pieces)
 
@@ -132,8 +137,11 @@ def validate_prompt_based_chunks(
                 if type(block_index) is not int or type(start) is not int or type(end) is not int:
                     report.errors.append(f"{prefix}: non-integer fragment span")
                     continue
-                if not 0 <= block_index < len(document.blocks) or not 0 <= start < end <= len(document.blocks[block_index].text):
+                if not 0 <= block_index < len(document.blocks) or not 0 <= start <= end <= len(document.blocks[block_index].text):
                     report.errors.append(f"{prefix}: impossible fragment span")
+                    continue
+                if start == end and document.blocks[block_index].text:
+                    report.errors.append(f"{prefix}: empty fragment for non-empty source block")
                     continue
                 source_text = document.blocks[block_index].text[start:end]
                 if fragment.get("fragment_sha256") != hashlib.sha256(source_text.encode("utf-8")).hexdigest():
@@ -148,6 +156,13 @@ def validate_prompt_based_chunks(
                 valid_fragments.append(fragment)
             if valid_fragments and chunk.text != _render(document, valid_fragments):
                 report.errors.append(f"{prefix}: text is not exact local source slicing")
+            if valid_fragments:
+                expected_separator = (
+                    int(valid_fragments[0]["source_block_index"]) > 0
+                    and int(valid_fragments[0]["char_start"]) == 0
+                )
+                if chunk.metadata.get("leading_block_separator") is not expected_separator:
+                    report.errors.append(f"{prefix}: incorrect leading separator provenance")
             block_indices = [int(item["source_block_index"]) for item in valid_fragments]
             if block_indices:
                 expected_paths = chunk.metadata.get("section_paths")
@@ -173,4 +188,8 @@ def validate_prompt_based_chunks(
             if cursor != len(block.text):
                 report.coverage_gaps += max(0, len(block.text) - cursor)
                 report.errors.append(f"{document.doc_id} block {block_index}: incomplete coverage")
+        if "".join(chunk.text for chunk in document_chunks) != document_to_text(document):
+            report.errors.append(
+                f"{document.doc_id}: chunks are not an exact normalized source partition"
+            )
     return report

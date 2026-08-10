@@ -16,6 +16,48 @@ from .tokenizer import TiktokenTokenizer
 from .writer import _write_text, serialize_chunks_jsonl, serialize_json
 
 
+def _validate_artifact_inputs(
+    chunks: list[Chunk], documents: list[NormalizedDocument], statistics: dict[str, Any]
+) -> None:
+    """Reject internally inconsistent prompt artifact sets before touching disk."""
+
+    document_order = {document.doc_id: index for index, document in enumerate(documents)}
+    if len(document_order) != len(documents):
+        raise ValueError("prompt artifacts contain duplicate document IDs")
+    if len({chunk.chunk_id for chunk in chunks}) != len(chunks):
+        raise ValueError("prompt artifacts contain duplicate chunk IDs")
+
+    previous_position = (-1, -1)
+    next_index: dict[str, int] = {}
+    for chunk in chunks:
+        chunk.validate()
+        if chunk.strategy != "prompt_based":
+            raise ValueError("prompt artifacts contain a non-prompt chunk")
+        if chunk.doc_id not in document_order:
+            raise ValueError(f"prompt chunk references unknown document {chunk.doc_id!r}")
+        expected_index = next_index.get(chunk.doc_id, 0)
+        if chunk.chunk_index != expected_index:
+            raise ValueError(
+                f"prompt chunks for {chunk.doc_id!r} are not contiguous and source ordered"
+            )
+        position = (document_order[chunk.doc_id], chunk.chunk_index)
+        if position <= previous_position:
+            raise ValueError("prompt chunks are not in deterministic document/source order")
+        previous_position = position
+        next_index[chunk.doc_id] = expected_index + 1
+
+    expected = {
+        "documents": len(documents),
+        "chunks": len(chunks),
+    }
+    for key, value in expected.items():
+        if statistics.get(key) != value:
+            raise ValueError(
+                f"prompt artifact statistics disagree for {key}: "
+                f"{statistics.get(key)!r} != {value}"
+            )
+
+
 def write_prompt_based_artifacts(
     chunks: list[Chunk],
     documents: list[NormalizedDocument],
@@ -26,6 +68,7 @@ def write_prompt_based_artifacts(
     statistics: dict[str, Any],
     source_input: str,
 ) -> None:
+    _validate_artifact_inputs(chunks, documents, statistics)
     corpus_hash = hashlib.sha256(canonical_json([document.to_dict() for document in documents]).encode("utf-8")).hexdigest()
     manifest = {
         "schema_version": 1,

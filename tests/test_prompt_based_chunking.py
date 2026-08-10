@@ -64,7 +64,10 @@ def test_normal_grouping_exact_coverage_order_and_section_crossing(tmp_path: Pat
     ])
     chunker = make_chunker(tmp_path, FakePlanner([plan((0, 1), (2, 3))]))
     chunks = chunker.chunk(doc)
-    assert [chunk.text for chunk in chunks] == ["Inputs\n\nInput details.", "Outputs\n\nOutput details."]
+    assert [chunk.text for chunk in chunks] == [
+        "Inputs\n\nInput details.",
+        "\n\nOutputs\n\nOutput details.",
+    ]
     assert [chunk.chunk_index for chunk in chunks] == [0, 1]
     report = validate_prompt_based_chunks([doc], chunks, chunker.config, chunker.model_config, chunker.tokenizer)
     assert report.valid, report.errors

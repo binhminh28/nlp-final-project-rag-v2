@@ -9,7 +9,7 @@ from typing import Any
 from rag_chunking.data.models import NORMALIZED_SCHEMA_VERSION
 
 from .fixed_size import FixedSizeChunkingConfig
-from .models import Chunk
+from .models import Chunk, validate_json_value
 from .tokenizer import TiktokenTokenizer
 
 
@@ -27,6 +27,7 @@ def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def serialize_json(value: dict[str, Any]) -> str:
+    validate_json_value(value)
     return json.dumps(
         value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False
     ) + "\n"
