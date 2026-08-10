@@ -115,7 +115,11 @@ def write_artifact_set(output_dir: Path, serialized: dict[str, str]) -> None:
     stage = Path(tempfile.mkdtemp(prefix=".artifact-stage-", dir=output_dir))
     installed: list[str] = []
     backups: list[str] = []
-    publish_order = [name for name in ("chunks.jsonl", "stats.json", "manifest.json") if name in serialized]
+    # Data files first, diagnostics second, manifest last as the commit marker.
+    publish_order = sorted(
+        name for name in serialized if name not in {"stats.json", "manifest.json"}
+    )
+    publish_order.extend(name for name in ("stats.json", "manifest.json") if name in serialized)
     try:
         for name, value in serialized.items():
             path = stage / name

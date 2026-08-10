@@ -22,6 +22,8 @@ chunk-fixed = "rag_chunking.cli.chunk_fixed:main"
 chunk-structure = "rag_chunking.cli.chunk_structure:main"
 chunk-prompt = "rag_chunking.cli.chunk_prompt:main"
 chunk-documents = "rag_chunking.cli.chunk_documents:main"
+embed-chunks = "rag_chunking.cli.embed_chunks:main"
+build-vector-index = "rag_chunking.cli.build_index:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

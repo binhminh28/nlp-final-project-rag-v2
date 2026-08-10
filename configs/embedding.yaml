@@ -1,0 +1,13 @@
+embedding:
+  provider: openrouter
+  model: openai/text-embedding-3-small
+  dimension: 1536
+  tokenizer: cl100k_base
+  max_input_tokens: 8192
+  max_batch_items: 64
+  max_batch_tokens: 8192
+  encoding_format: float
+
+index:
+  backend: local_cosine_jsonl
+  schema_version: local_cosine_index_v1
