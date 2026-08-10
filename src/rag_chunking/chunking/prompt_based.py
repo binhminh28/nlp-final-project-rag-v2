@@ -346,7 +346,7 @@ class PromptBasedChunker:
     def _request(self, document: NormalizedDocument, batch: _PlannedBatch) -> dict[str, Any]:
         normalized_hash = _sha256_text(canonical_json(document.to_dict()))
         candidates = list(batch.candidates)
-        return {
+        request = {
             "cache_version": CACHE_VERSION,
             "document": {
                 "doc_id": document.doc_id,
@@ -362,6 +362,16 @@ class PromptBasedChunker:
             "candidate_sha256": _sha256_text(canonical_json(candidates)),
             "candidates": candidates,
         }
+        # Keep the established v2 default request byte-compatible with the
+        # validated production cache while making every non-default planning
+        # knob an explicit cache-key component.
+        if self.config.tokenizer_name != "cl100k_base":
+            request["tokenizer"] = self.tokenizer.name
+        if self.config.planner_input_tokens != 12_000:
+            request["planner_input_tokens"] = self.config.planner_input_tokens
+        if self.config.block_preview_tokens != 1_024:
+            request["block_preview_tokens"] = self.config.block_preview_tokens
+        return request
 
     def _resolve(self, document: NormalizedDocument, batch: _PlannedBatch) -> _ResolvedPlan:
         request = self._request(document, batch)

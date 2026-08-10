@@ -159,6 +159,10 @@ def validate_fixed_size_chunks(
             expected_roundtrip = tokenizer.encode(chunk.text) == token_slice
             if chunk.metadata.get("text_token_roundtrip") is not expected_roundtrip:
                 report.errors.append(f"{prefix}: incorrect text_token_roundtrip metadata")
+            if not expected_roundtrip:
+                report.errors.append(
+                    f"{prefix}: persisted token_count does not match canonical re-encoding"
+                )
             expected_overlap = previous_end - chunk.token_start if index else 0
             expected_metadata = {
                 "nominal_chunk_size": config.chunk_size,

@@ -4,7 +4,12 @@ from pathlib import Path
 from rag_chunking.chunking.fixed_size import FixedSizeChunker
 from rag_chunking.chunking.models import Chunk
 from rag_chunking.chunking.statistics import chunk_corpus_statistics
-from rag_chunking.chunking.writer import read_chunks_jsonl, write_fixed_size_artifacts
+from rag_chunking.chunking.verification import verify_artifact_directory
+from rag_chunking.chunking.writer import (
+    configuration_fingerprint,
+    read_chunks_jsonl,
+    write_fixed_size_artifacts,
+)
 from rag_chunking.data.models import DocumentBlock, NormalizedDocument
 
 
@@ -43,10 +48,25 @@ def test_artifacts_are_deterministic_and_readable(tmp_path: Path) -> None:
     args = (chunks, output, chunker.config, chunker.tokenizer, stats, "input.jsonl")
     write_fixed_size_artifacts(*args)
     first = {path.name: path.read_bytes() for path in output.iterdir()}
+    stale_stage = output / ".artifact-stage-interrupted"
+    stale_stage.mkdir()
+    (stale_stage / "manifest.json.previous").write_text("stale", encoding="utf-8")
     write_fixed_size_artifacts(*args)
     assert {path.name: path.read_bytes() for path in output.iterdir()} == first
     assert read_chunks_jsonl(output / "chunks.jsonl")[0].to_dict() == chunks[0].to_dict()
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["stride"] == 448
     assert manifest["tokenizer"] == "tiktoken:cl100k_base"
-    assert manifest["boundary_policy"] == "utf8_safe_minimal_backoff"
+    assert manifest["boundary_policy"] == "utf8_and_token_roundtrip_safe_minimal_backoff_v1"
+    assert manifest["config_fingerprint"]
+    verification = verify_artifact_directory(output, [document])
+    assert verification.valid, verification.errors
+
+
+def test_configuration_fingerprint_is_canonical_and_output_sensitive() -> None:
+    first = {"strategy": "fixed_size", "chunk_size": 512, "overlap": 64}
+    reordered = {"overlap": 64, "chunk_size": 512, "strategy": "fixed_size"}
+    changed = {**first, "overlap": 32}
+
+    assert configuration_fingerprint(first) == configuration_fingerprint(reordered)
+    assert configuration_fingerprint(first) != configuration_fingerprint(changed)

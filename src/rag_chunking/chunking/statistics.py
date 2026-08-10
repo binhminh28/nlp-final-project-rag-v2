@@ -92,7 +92,10 @@ def chunk_corpus_statistics(
             "documents_affected": len(affected_documents),
             "maximum_adjustment_tokens": max(
                 (
-                    max(chunk.metadata["start_adjustment"], chunk.metadata["end_adjustment"])
+                    max(
+                        abs(chunk.metadata["start_adjustment"]),
+                        abs(chunk.metadata["end_adjustment"]),
+                    )
                     for chunk in adjusted_chunks
                 ),
                 default=0,

@@ -8,7 +8,11 @@ from rag_chunking.data.models import NormalizedDocument
 
 from .models import Chunk
 from .serialization import document_to_text
-from .tokenizer import TiktokenTokenizer, retreat_to_utf8_safe_boundary
+from .tokenizer import (
+    TiktokenTokenizer,
+    is_utf8_safe_boundary,
+    retreat_to_utf8_safe_boundary,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,10 +65,51 @@ def fixed_size_windows(
 
     windows: list[FixedSizeWindow] = []
     desired_start = 0
-    start = 0
-    while start < len(source_tokens):
-        nominal_end = min(start + config.chunk_size, len(source_tokens))
-        end = retreat_to_utf8_safe_boundary(source_tokens, nominal_end, tokenizer)
+    previous_end = 0
+    while desired_start < len(source_tokens):
+        initial_start = retreat_to_utf8_safe_boundary(
+            source_tokens, desired_start, tokenizer
+        )
+        maximum_start = previous_end if windows else initial_start
+        selected: tuple[int, int, int] | None = None
+        # A UTF-8-safe token slice is not necessarily stable when encoded on
+        # its own: BPE tokenization can change at a context boundary.  Persisted
+        # token_count describes chunk.text, so require the source slice to
+        # round-trip through the canonical tokenizer as well.
+        for candidate_start in range(initial_start, maximum_start + 1):
+            if not is_utf8_safe_boundary(source_tokens, candidate_start, tokenizer):
+                continue
+            candidate_nominal_end = min(
+                candidate_start + config.chunk_size, len(source_tokens)
+            )
+            candidate_end = retreat_to_utf8_safe_boundary(
+                source_tokens, candidate_nominal_end, tokenizer
+            )
+            while candidate_end > candidate_start:
+                token_slice = source_tokens[candidate_start:candidate_end]
+                if tokenizer.encode(tokenizer.decode_strict(token_slice)) == token_slice:
+                    if (
+                        candidate_end < len(source_tokens)
+                        and candidate_end - candidate_start <= config.chunk_overlap
+                    ):
+                        break
+                    selected = (candidate_start, candidate_end, candidate_nominal_end)
+                    break
+                # The corpus tail must remain covered. Try another start when
+                # changing the final end would drop source content.
+                if candidate_end == len(source_tokens):
+                    break
+                candidate_end = retreat_to_utf8_safe_boundary(
+                    source_tokens, candidate_end - 1, tokenizer
+                )
+            if selected is not None:
+                break
+        if selected is None:
+            raise ValueError(
+                "Unable to create a canonical-tokenizer-stable fixed-size window; "
+                "use a larger chunk_size or overlap"
+            )
+        start, end, nominal_end = selected
         if end <= start:
             raise ValueError(
                 "chunk_size is too small to contain a complete UTF-8 code point "
@@ -88,7 +133,7 @@ def fixed_size_windows(
                 "Unicode-safe boundary adjustment cannot make forward progress; "
                 "use a larger chunk_size or smaller chunk_overlap"
             )
-        start = next_start
+        previous_end = end
     return windows
 
 

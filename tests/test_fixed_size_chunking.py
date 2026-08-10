@@ -131,3 +131,42 @@ def test_unicode_split_boundary_is_adjusted_without_corruption_or_gaps() -> None
     assert any(chunk["metadata"]["boundary_adjusted"] for chunk in first)
     covered = {position for chunk in first for position in range(chunk["token_start"], chunk["token_end"])}
     assert covered == set(range(len(source_tokens)))
+
+
+def test_bpe_context_boundary_keeps_persisted_token_count_canonical() -> None:
+    # This suffix previously produced a valid UTF-8 source-token slice whose
+    # standalone BPE encoding was one token shorter.
+    text = """    // Close the popup
+    await combobox.close();
+    expect(await combobox.isOpen()).toBe(false);
+  });
+});
+
+API reference
+
+For detailed API documentation, inspect the following API references:
+
+- [`Combobox`](/api/aria/combobox/Combobox)
+- [`ComboboxPopup`](/api/aria/combobox/ComboboxPopup)
+- [`ComboboxWidget`](/api/aria/combobox/ComboboxWidget)
+
+Related patterns and directives
+
+Combobox is the primitive directive for these documented patterns:
+
+- [Autocomplete](guide/aria/autocomplete) - Filtering and suggestions pattern
+- [Select](guide/aria/select) - Single selection dropdown pattern
+- [Multiselect](guide/aria/multiselect) - Multiple selection pattern
+
+Combobox typically combines with:
+
+- [Listbox](guide/aria/listbox) - Most common popup content
+- [Tree](guide/aria/tree) - Hierarchical popup content"""
+    chunker = FixedSizeChunker(FixedSizeChunkingConfig(chunk_size=54, chunk_overlap=10))
+
+    chunks = chunker.chunk(make_document(text))
+
+    assert all(chunk.metadata["text_token_roundtrip"] is True for chunk in chunks)
+    assert all(
+        chunk.token_count == len(chunker.tokenizer.encode(chunk.text)) for chunk in chunks
+    )

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+import rag_chunking.chunking.writer as writer_module
 
 from rag_chunking.chunking.fixed_size import FixedSizeChunker, FixedSizeChunkingConfig
 from rag_chunking.chunking.models import Chunk
@@ -165,6 +166,37 @@ def test_serialization_failure_preserves_existing_artifact_set(tmp_path: Path) -
     chunks[0].metadata["invalid"] = float("inf")
 
     with pytest.raises(ValueError, match="non-finite"):
+        write_fixed_size_artifacts(
+            chunks, output, chunker.config, chunker.tokenizer, stats, "input.jsonl"
+        )
+
+    assert {path.name: path.read_bytes() for path in output.iterdir()} == before
+
+
+def test_mid_publish_io_failure_rolls_back_complete_artifact_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    doc = document("valid text")
+    chunker = FixedSizeChunker()
+    chunks = chunker.chunk(doc)
+    stats = chunk_corpus_statistics([doc], chunks, chunker.tokenizer)
+    output = tmp_path / "artifacts"
+    write_fixed_size_artifacts(
+        chunks, output, chunker.config, chunker.tokenizer, stats, "input.jsonl"
+    )
+    before = {path.name: path.read_bytes() for path in output.iterdir()}
+    real_replace = writer_module.os.replace
+
+    def fail_while_publishing(source, destination) -> None:
+        source_path = Path(source)
+        if source_path.name == "stats.json" and source_path.parent.name.startswith(
+            ".artifact-stage-"
+        ):
+            raise OSError("simulated publish failure")
+        real_replace(source, destination)
+
+    monkeypatch.setattr(writer_module.os, "replace", fail_while_publishing)
+    with pytest.raises(OSError, match="simulated publish failure"):
         write_fixed_size_artifacts(
             chunks, output, chunker.config, chunker.tokenizer, stats, "input.jsonl"
         )

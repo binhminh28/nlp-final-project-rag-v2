@@ -10,7 +10,13 @@ from rag_chunking.data.models import NORMALIZED_SCHEMA_VERSION
 from .models import Chunk
 from .structure_aware import StructureAwareChunkingConfig
 from .tokenizer import TiktokenTokenizer
-from .writer import _write_text, serialize_chunks_jsonl, serialize_json
+from .writer import (
+    configuration_fingerprint,
+    serialize_chunks_jsonl,
+    serialize_json,
+    validate_artifact_inputs,
+    write_artifact_set,
+)
 
 
 def write_structure_aware_artifacts(
@@ -21,6 +27,22 @@ def write_structure_aware_artifacts(
     statistics: dict[str, Any],
     source_input: str,
 ) -> None:
+    validate_artifact_inputs(chunks, statistics, "structure_aware")
+    heading_policy = (
+        "local_heading_first_chunk_if_atomic_budget_allows_v1"
+        if config.include_local_heading
+        else "hierarchy_metadata_only_v1"
+    )
+    configuration = {
+        "strategy": "structure_aware",
+        "max_chunk_tokens": config.max_chunk_tokens,
+        "tokenizer": tokenizer.name,
+        "include_local_heading": config.include_local_heading,
+        "heading_policy": heading_policy,
+        "overlap_policy": "none",
+        "packing_policy": "section_local_source_order_greedy_atomic_blocks_v1",
+        "oversized_block_policy": "sentence_or_line_then_utf8_safe_token_fallback_v1",
+    }
     manifest = {
         "schema_version": 1,
         "source_schema_version": NORMALIZED_SCHEMA_VERSION,
@@ -28,7 +50,10 @@ def write_structure_aware_artifacts(
         "max_chunk_tokens": config.max_chunk_tokens,
         "tokenizer": tokenizer.name,
         "overlap_policy": "none",
-        "heading_policy": "local_heading_first_chunk_if_atomic_budget_allows_v1",
+        "heading_policy": heading_policy,
+        "include_local_heading": config.include_local_heading,
+        "configuration": configuration,
+        "config_fingerprint": configuration_fingerprint(configuration),
         "hierarchy_policy": "markdown_stack_pop_level_gte_current_v1",
         "packing_policy": "section_local_source_order_greedy_atomic_blocks_v1",
         "sibling_section_merge_policy": "never",
@@ -42,6 +67,4 @@ def write_structure_aware_artifacts(
         "manifest.json": serialize_json(manifest),
         "stats.json": serialize_json(statistics),
     }
-    output_dir.mkdir(parents=True, exist_ok=True)
-    for name, value in serialized.items():
-        _write_text(output_dir / name, value)
+    write_artifact_set(output_dir, serialized)

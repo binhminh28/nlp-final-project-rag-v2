@@ -137,6 +137,12 @@ def test_cache_invalidates_on_source_prompt_and_model_configuration(tmp_path: Pa
         model_planner, tmp_path / "cache", model_config=PlannerModelConfig(provider="fake", model="v2")
     ).chunk(base_doc)
     assert model_planner.calls == 1
+    preview_planner = FakePlanner()
+    make_chunker(tmp_path, preview_planner, block_preview_tokens=512).chunk(base_doc)
+    assert preview_planner.calls == 1
+    input_budget_planner = FakePlanner()
+    make_chunker(tmp_path, input_budget_planner, planner_input_tokens=6_000).chunk(base_doc)
+    assert input_budget_planner.calls == 1
 
 
 def test_planner_candidates_include_compact_v2_structure_metadata(tmp_path: Path) -> None:

@@ -13,7 +13,13 @@ from .prompt_based import PromptBasedChunkingConfig
 from .prompt_cache import CACHE_VERSION, canonical_json
 from .prompt_client import PlannerModelConfig
 from .tokenizer import TiktokenTokenizer
-from .writer import _write_text, serialize_chunks_jsonl, serialize_json
+from .writer import (
+    configuration_fingerprint,
+    serialize_chunks_jsonl,
+    serialize_json,
+    validate_artifact_inputs,
+    write_artifact_set,
+)
 
 
 def _validate_artifact_inputs(
@@ -69,7 +75,22 @@ def write_prompt_based_artifacts(
     source_input: str,
 ) -> None:
     _validate_artifact_inputs(chunks, documents, statistics)
+    validate_artifact_inputs(chunks, statistics, "prompt_based")
     corpus_hash = hashlib.sha256(canonical_json([document.to_dict() for document in documents]).encode("utf-8")).hexdigest()
+    configuration = {
+        "strategy": "prompt_based",
+        "max_chunk_tokens": config.max_chunk_tokens,
+        "tokenizer": tokenizer.name,
+        "prompt_version": config.prompt_version,
+        "planner_schema_version": config.planner_schema_version,
+        "planner_input_tokens": config.planner_input_tokens,
+        "block_preview_tokens": config.block_preview_tokens,
+        "max_retries": config.max_retries,
+        "planner": model_config.identity(),
+        "packing_policy": "planner_contiguous_groups_then_local_greedy_v1",
+        "oversized_block_policy": "sentence_or_line_then_utf8_safe_token_fallback_v1",
+        "source_content_policy": "exact_normalized_source_slices_only",
+    }
     manifest = {
         "schema_version": 1,
         "source_schema_version": NORMALIZED_SCHEMA_VERSION,
@@ -94,6 +115,8 @@ def write_prompt_based_artifacts(
         "packing_policy": "planner_contiguous_groups_then_local_greedy_v1",
         "oversized_block_policy": "sentence_or_line_then_utf8_safe_token_fallback_v1",
         "source_content_policy": "exact_normalized_source_slices_only",
+        "configuration": configuration,
+        "config_fingerprint": configuration_fingerprint(configuration),
         "source_input": Path(source_input).as_posix(),
         "source_corpus_sha256": corpus_hash,
         "documents": statistics["documents"],
@@ -105,6 +128,4 @@ def write_prompt_based_artifacts(
         "manifest.json": serialize_json(manifest),
         "stats.json": serialize_json(statistics),
     }
-    output_dir.mkdir(parents=True, exist_ok=True)
-    for name, value in serialized.items():
-        _write_text(output_dir / name, value)
+    write_artifact_set(output_dir, serialized)
