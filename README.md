@@ -3,6 +3,9 @@
 For the audited fair retrieval protocols, token-budget semantics, external QA
 adapter, evidence mapping, frozen fingerprints, and compatibility gate, see
 [`RETRIEVAL_PROTOCOL_AUDIT.md`](RETRIEVAL_PROTOCOL_AUDIT.md).
+For the terminal offline answer evaluator, frozen lexical metrics, failure-aware
+denominators, and paired strategy artifacts, see
+[`ANSWER_EVALUATION.md`](ANSWER_EVALUATION.md).
 ## Structure-Aware Chunking for RAG on Technical Documents
 
 ## 1. Mục tiêu hệ thống
@@ -22,11 +25,12 @@ Kiến trúc thí nghiệm mục tiêu so sánh bốn phương pháp:
 
 > **Trạng thái code hiện tại:** repository đã triển khai và tạo artifact cho
 > Fixed-size, Structure-aware và Prompt-based. Original HiChunk (HC200),
-> Auto-Merge, RAG generation và đánh giá answer vẫn là thiết kế mục tiêu.
+> Auto-Merge vẫn là thiết kế mục tiêu; RAG generation và deterministic answer
+> evaluation đã được triển khai.
 > Dense retrieval hiện hỗ trợ cả top-k lịch sử và ngân sách token hậu xếp hạng;
 > evidence-aware evaluation dùng QA contract bên ngoài, trong khi baseline cũ
 > vẫn dùng gold label ở mức đường dẫn tài liệu. Deterministic Context
-> Construction đã được triển khai; generation và answer evaluation chưa có.
+> Construction, generation và offline answer evaluation đã được triển khai.
 
 ---
 
@@ -59,7 +63,7 @@ flowchart TD
     SEARCH --> BUDGET["Token-budget retrieval"]
     BUDGET -.-> AUTOMERGE["Auto-Merge - planned"]
     BUDGET --> CONTEXT["Deterministic context construction"]
-    CONTEXT -.-> RAG["RAG generation and answer evaluation - planned"]
+    CONTEXT --> RAG["RAG generation and deterministic answer evaluation"]
 ```
 
 Mũi tên liền biểu diễn luồng đã có trong code; mũi tên nét đứt biểu diễn phần
@@ -79,7 +83,7 @@ Mũi tên liền biểu diễn luồng đã có trong code; mũi tên nét đứ
 | Token-budget retrieval | Đã triển khai | `rag_chunking.retrieval.protocols`; hậu xử lý cùng dense ranking |
 | Context construction | Đã triển khai | `rag_chunking.context`; định dạng và token budget độc lập, deterministic |
 | Auto-Merge | Chưa triển khai | Ngoài phạm vi primary experiment |
-| RAG generation / answer evaluation | Chưa triển khai | Chưa có generator hoặc Answer F1/ROUGE-L runner |
+| RAG generation / answer evaluation | Đã triển khai | `rag_chunking.generation`; `rag_chunking.evaluation.answer_*`; offline normalized EM/token F1/containment, failure-aware aggregates và paired artifacts |
 
 ---
 
@@ -945,8 +949,8 @@ Fixed-size không tham gia Auto-Merge ablation vì không có hierarchy.
 # 13. Module 9 — RAG Generation
 
 > **Đã triển khai.** `rag_chunking.generation` nhận duy nhất query identity,
-> exact question và `ContextResult` đã được kiểm chứng. Answer Evaluation vẫn là
-> phase kế tiếp và chưa được triển khai ở layer này.
+> exact question và `ContextResult` đã được kiểm chứng. Answer Evaluation là
+> terminal offline layer riêng, được mô tả trong `ANSWER_EVALUATION.md`.
 
 Retrieved context được đưa cùng question vào một generator LLM.
 
@@ -1052,10 +1056,12 @@ Chỉ chunking strategy thay đổi.
 
 # 14. Module 10 — Evaluation
 
-> **Đã triển khai một phần.** Evaluator hiện có tính Hit@1/3/5/10, MRR và
-> distinct-source Recall@5/10 trên gold `relative_path`, báo cáo overall và theo
-> category. Evidence Recall, Answer F1, ROUGE-L, cost comparison và structural
-> metrics bên dưới là protocol mục tiêu, chưa có runner tương ứng.
+> **Đã triển khai cho retrieval và deterministic answer baseline.** Retrieval
+> evaluator tính Hit@1/3/5/10, MRR, distinct-source Recall và evidence coverage.
+> Answer evaluator offline tính normalized EM, lexical precision/recall/F1 và
+> containment diagnostic với explicit failure/missing denominators. ROUGE-L,
+> semantic/LLM judge, cost comparison và structural metrics không thuộc answer
+> evaluation phase hiện tại.
 
 Evaluation được chia thành bốn nhóm:
 
