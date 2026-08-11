@@ -9,12 +9,19 @@ Nghiên cứu tập trung vào câu hỏi:
 
 > Với tài liệu kỹ thuật vốn đã có cấu trúc rõ ràng, một phương pháp chunking dựa trực tiếp trên cấu trúc tài liệu có thể đạt chất lượng retrieval và RAG tương đương với các phương pháp hierarchical chunking dựa trên LLM hay không, trong khi có chi phí xử lý thấp hơn?
 
-Hệ thống so sánh bốn phương pháp:
+Kiến trúc thí nghiệm mục tiêu so sánh bốn phương pháp:
 
 1. **Fixed-size Chunking** — baseline đơn giản.
 2. **Structure-aware Chunking** — sử dụng heading/section có sẵn.
 3. **Prompt-based Hierarchical Chunking** — LLM suy luận chunk boundary và hierarchy bằng prompting, lấy cảm hứng từ HiChunk nhưng không fine-tune.
 4. **Original HiChunk (HC200)** — cấu hình tham chiếu từ paper: hierarchy do fine-tuned HiChunk model tạo ra được split thêm theo fixed-size khoảng 200 tokens.
+
+> **Trạng thái code hiện tại:** repository đã triển khai và tạo artifact cho
+> Fixed-size, Structure-aware và Prompt-based. Original HiChunk (HC200),
+> Auto-Merge, retrieval theo token budget, RAG generation và đánh giá
+> evidence/answer vẫn là thiết kế mục tiêu, chưa có implementation trong
+> `src/rag_chunking/`. Dense retrieval baseline hiện tại đánh giá 3 strategy bằng
+> top-k và gold label ở mức đường dẫn tài liệu.
 
 ---
 
@@ -22,56 +29,55 @@ Hệ thống so sánh bốn phương pháp:
 
 ```mermaid
 flowchart TD
+    DOCS["Angular Markdown documents"] --> PRE["Preprocessing: normalized_document_v2"]
 
-    A[Technical Documents<br/>Markdown / HTML] --> B[Document Preprocessing]
+    PRE --> FIXED["Fixed-size chunking"]
+    PRE --> STRUCTURE["Structure-aware chunking"]
+    PRE --> PROMPT["Prompt-based chunking"]
 
-    B --> C1[Fixed-size Chunker]
-    B --> C2[Structure-aware Chunker]
-    B --> C3[Prompt-based LLM Chunker]
-    B --> C4[Original HiChunk<br/>(HC200)]
+    FIXED --> CHUNKS["Unified chunk artifacts"]
+    STRUCTURE --> CHUNKS
+    PROMPT --> CHUNKS
 
-    C1 --> D[Unified Chunk Representation]
-    C2 --> D
-    C3 --> D
-    C4 --> D
+    CHUNKS --> EMBED["OpenRouter embeddings"]
+    EMBED --> INDEX["Local cosine JSONL indexes"]
 
-    D --> E[Embedding Model]
-    E --> F[Vector Index]
+    DATASET["64-query source-level dataset"] --> QUERY["Query embedding and cache"]
+    QUERY --> SEARCH["Dense cosine retrieval at top-k"]
+    INDEX --> SEARCH
+    SEARCH --> EVAL["Hit, MRR, and source recall evaluation"]
+    DATASET --> EVAL
+    EVAL --> RESULTS["Deterministic retrieval artifacts"]
 
-    Q[QA Dataset<br/>T0 / T1 / T2] --> R[Query Embedding]
-    R --> F
-
-    F --> G[Dense Retrieval<br/>Same Token Budget]
-
-    G --> H1[Base Retrieval]
-    G --> H2[Hierarchical Retrieval Ablation<br/>Simplified AM / Original AM]
-
-    H1 --> I[RAG Context]
-    H2 --> I
-
-    I --> J[Generator LLM]
-    Q --> J
-
-    J --> K[Generated Answer]
-
-    Q --> L[Gold Evidence / Gold Answer]
-
-    G --> M[Retrieval Evaluation]
-    L --> M
-
-    K --> N[Answer Evaluation]
-    L --> N
-
-    M --> O[Experiment Results]
-    N --> O
-
-    D --> P[Chunking / Cost Analysis]
-    P --> O
+    PRE -.-> HICHUNK["Original HiChunk HC200 - planned"]
+    HICHUNK -.-> CHUNKS
+    SEARCH -.-> BUDGET["Token-budget and Auto-Merge retrieval - planned"]
+    BUDGET -.-> RAG["RAG generation and answer evaluation - planned"]
 ```
+
+Mũi tên liền biểu diễn luồng đã có trong code; mũi tên nét đứt biểu diễn phần
+`planned`, được mô tả trong thiết kế nhưng chưa được triển khai.
+
+## 2.1 Implementation status
+
+| Thành phần | Trạng thái hiện tại | Bằng chứng trong repository |
+|---|---|---|
+| Preprocessing | Đã triển khai | `rag_chunking.data`, 384 documents trong processed manifest |
+| Fixed-size | Đã triển khai | `rag_chunking.chunking.fixed_size`, 1.300 chunks |
+| Structure-aware | Đã triển khai | `rag_chunking.chunking.structure_aware`, 3.162 chunks |
+| Prompt-based | Đã triển khai qua CLI riêng | `chunk_prompt`; artifact hiện có 2.054 chunks dùng prompt v1, trong khi code mặc định hiện là `prompt_based_v2`; chưa nằm trong orchestrator config mặc định |
+| Embedding và index | Đã triển khai | OpenRouter embeddings, backend `local_cosine_jsonl` |
+| Dense retrieval evaluation | Đã triển khai | 64 queries, top-k=10, label ở mức `relative_path` |
+| Original HiChunk HC200 | Chưa triển khai | Chưa có chunker, CLI hoặc artifact |
+| Token-budget / Auto-Merge | Chưa triển khai | Retrieval service hiện nhận `top_k` |
+| RAG generation / answer evaluation | Chưa triển khai | Chưa có generator hoặc Answer F1/ROUGE-L runner |
 
 ---
 
-# 3. Pipeline tổng thể
+# 3. Pipeline tổng thể dự kiến
+
+Sơ đồ dưới đây là pipeline đích của main experiment. Với luồng đã chạy được ở
+trạng thái hiện tại, xem sơ đồ và bảng trạng thái tại mục 2.
 
 ```text
 Technical Documents
@@ -547,6 +553,9 @@ Iterative inference được bỏ trong phạm vi bài tập vì corpus chỉ g�
 
 ## 6.4 Original HiChunk
 
+> **Chưa triển khai trong code hiện tại.** Phần này mô tả reference method dự
+> kiến cho main experiment.
+
 HiChunk gốc được sử dụng như **reference method from the original paper**. Model tạo hierarchical segmentation; output inference được dùng để dựng hierarchy.
 
 Mục đích không phải để chứng minh phương pháp của chúng ta giống HiChunk, mà để trả lời:
@@ -645,7 +654,9 @@ title_path = []
 
 # 8. Module 4 — Embedding
 
-Tất cả các chunk được embed bằng **cùng một embedding model**.
+Tất cả các chunk được embed bằng **cùng một embedding model**. Implementation
+hiện tại dùng OpenRouter với `openai/text-embedding-3-small`, dimension 1536,
+theo `configs/embedding.yaml`.
 
 Pipeline:
 
@@ -661,13 +672,8 @@ Dense Vector
 
 Embedding model cần được giữ cố định cho toàn bộ experiment.
 
-Ví dụ:
-
-```text
-BAAI/bge-small-en-v1.5
-```
-
-hoặc một embedding model nhẹ tương đương.
+Model và các giới hạn input là một phần của fingerprint để các artifact không
+bị trộn giữa những cấu hình khác nhau.
 
 ---
 
@@ -675,27 +681,33 @@ hoặc một embedding model nhẹ tương đương.
 
 Các chunk embeddings được lưu trong vector index.
 
-Có thể sử dụng:
+Implementation hiện tại sử dụng:
 
 ```text
-FAISS
+local_cosine_jsonl
 ```
 
-Không cần triển khai vector database phức tạp.
+Đây là persistent local cosine index phục vụ baseline và kiểm tra integrity;
+repository hiện không dùng FAISS hay vector database bên ngoài.
 
-Mỗi phương pháp chunking có index riêng:
+Mỗi phương pháp chunking đã triển khai có index riêng, đặt dưới fingerprint của
+embedding configuration:
 
 ```text
-indexes/
-├── fixed/
-├── structure/
-├── prompt_llm/
-└── hichunk/
+data/indexes/angular/
+├── fixed_size/<embedding-fingerprint>/
+├── structure_aware/<embedding-fingerprint>/
+└── prompt_based/<embedding-fingerprint>/
 ```
 
 ---
 
 # 10. Module 6 — QA Benchmark
+
+> **Thiết kế mục tiêu, chưa phải benchmark hiện tại.** Dataset đang có gồm 64
+> query thuộc 8 category, với 79 relevance labels ở mức `relative_path`; chưa có
+> taxonomy T0/T1/T2, gold evidence sentence hoặc gold answer. Schema thật được
+> mô tả trong `RETRIEVAL_EVALUATION.md`.
 
 Tạo một mini benchmark gồm khoảng:
 
@@ -752,6 +764,10 @@ QA có thể được LLM sinh nháp, nhưng phải được kiểm tra thủ c�
 
 # 11. Module 7 — Retrieval
 
+> **Trạng thái hiện tại:** pure dense cosine retrieval đã được triển khai, nhưng
+> nhận `top_k` (baseline dùng depth 10), chưa dừng theo token budget. Nội dung
+> bên dưới mô tả protocol mục tiêu cho thí nghiệm evidence/RAG.
+
 Query được embed bằng cùng embedding model:
 
 ```text
@@ -804,6 +820,8 @@ Stop when total context reaches token budget
 ---
 
 # 12. Module 8 — Auto-Merge Retrieval Ablation
+
+> **Chưa triển khai trong code hiện tại.** Đây là thiết kế ablation dự kiến.
 
 Auto-Merge không nằm trong main experiment mà chỉ được dùng trong **hierarchical retrieval ablation**. Hai biến thể dưới đây là hai cơ chế riêng, không được dùng chung một tên generic.
 
@@ -880,6 +898,9 @@ Fixed-size không tham gia Auto-Merge ablation vì không có hierarchy.
 
 # 13. Module 9 — RAG Generation
 
+> **Chưa triển khai trong code hiện tại.** Repository hiện kết thúc ở retrieval
+> evaluation và chưa có generator LLM.
+
 Retrieved context được đưa cùng question vào một generator LLM.
 
 Pipeline:
@@ -925,6 +946,11 @@ Chỉ chunking strategy thay đổi.
 ---
 
 # 14. Module 10 — Evaluation
+
+> **Đã triển khai một phần.** Evaluator hiện có tính Hit@1/3/5/10, MRR và
+> distinct-source Recall@5/10 trên gold `relative_path`, báo cáo overall và theo
+> category. Evidence Recall, Answer F1, ROUGE-L, cost comparison và structural
+> metrics bên dưới là protocol mục tiêu, chưa có runner tương ứng.
 
 Evaluation được chia thành bốn nhóm:
 

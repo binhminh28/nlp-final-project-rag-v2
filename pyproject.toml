@@ -26,6 +26,15 @@ embed-chunks = "rag_chunking.cli.embed_chunks:main"
 build-vector-index = "rag_chunking.cli.build_index:main"
 retrieve = "rag_chunking.cli.retrieve:main"
 evaluate-retrieval = "rag_chunking.cli.evaluate_retrieval:main"
+audit-retrieval-relevance = "rag_chunking.cli.audit_relevance:main"
+run-dense-depth-ablation = "rag_chunking.cli.run_dense_depth_ablation:main"
+run-diversity-ablation = "rag_chunking.cli.run_diversity_ablation:main"
+prepare-query-rewrites = "rag_chunking.cli.prepare_query_rewrites:main"
+run-query-rewrite-ablation = "rag_chunking.cli.run_rewrite_ablation:main"
+merge-query-rewrite-ablation = "rag_chunking.cli.merge_rewrite_ablation:main"
+run-bm25-experiments = "rag_chunking.cli.run_bm25_experiments:main"
+run-hybrid-experiment = "rag_chunking.cli.run_hybrid_experiment:main"
+analyze-experiment-uncertainty = "rag_chunking.cli.analyze_experiment_uncertainty:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
