@@ -36,6 +36,7 @@ merge-query-rewrite-ablation = "rag_chunking.cli.merge_rewrite_ablation:main"
 run-bm25-experiments = "rag_chunking.cli.run_bm25_experiments:main"
 run-hybrid-experiment = "rag_chunking.cli.run_hybrid_experiment:main"
 analyze-experiment-uncertainty = "rag_chunking.cli.analyze_experiment_uncertainty:main"
+generate-answers = "rag_chunking.cli.generate_answers:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

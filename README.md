@@ -944,8 +944,9 @@ Fixed-size không tham gia Auto-Merge ablation vì không có hierarchy.
 
 # 13. Module 9 — RAG Generation
 
-> **Chưa triển khai trong code hiện tại.** Repository hiện kết thúc ở retrieval
-> evaluation và chưa có generator LLM.
+> **Đã triển khai.** `rag_chunking.generation` nhận duy nhất query identity,
+> exact question và `ContextResult` đã được kiểm chứng. Answer Evaluation vẫn là
+> phase kế tiếp và chưa được triển khai ở layer này.
 
 Retrieved context được đưa cùng question vào một generator LLM.
 
@@ -963,19 +964,77 @@ Generator LLM
 Generated Answer
 ```
 
-Prompt:
+Authoritative handoff:
 
 ```text
-Answer the question using only the provided context.
+query_id + exact question + exact ContextResult.rendered_context + GenerationConfig
+```
+
+Generation không retrieve/rerank lại, không sắp xếp hoặc cắt context, và không
+nhận QA record đầy đủ. Gold answer/evidence vì vậy không nằm trong generation
+input contract. Strategy chỉ được giữ làm provenance trong `AnswerResult`; không
+có prompt branch theo `fixed_size`, `structure_aware`, hoặc `prompt_based`.
+
+Frozen prompt contract `answer_prompt_v1` gồm đúng hai chat messages:
+
+```text
+SYSTEM:
+Answer the question using only the supplied context. Remain faithful to the evidence. If the context is insufficient, state that clearly. Do not fabricate unsupported information.
+
+USER:
+Question:
+{exact question}
 
 Context:
-{context}
-
-Question:
-{question}
+{exact ContextResult.rendered_context}
 
 Answer:
 ```
+
+Không trim hoặc normalize question/context tại boundary này. Prompt fingerprint
+là SHA-256 của canonical JSON chứa prompt version và exact ordered message
+objects. Generation config fingerprint chứa provider/model, exact system prompt
+và version, template version, decoding settings, output allowance, seed,
+timeout/retry semantics, response format, tokenizer/accounting policy, context
+window policy, và schema version; API credentials không bao giờ thuộc identity.
+
+Input accounting dùng `tiktoken:cl100k_base` trên exact role/content request và
+policy versioned `openai_chat_cl100k_base_3_per_message_1_priming_v1`. Nó tách
+context, question, instruction, formatting/framing và total local estimate.
+OpenRouter có thể dùng framing/tokenizer nội bộ khác, nên provider-reported prompt
+tokens được lưu riêng khi có. Nếu local input estimate cộng `max_output_tokens`
+vượt `context_window_tokens`, `GenerationInputOverflowError` được raise trước khi
+đọc cache hoặc gọi provider; generation không truncate hay rebuild evidence.
+
+`GenerationProvider` tách prompt construction khỏi inference.
+`DeterministicFakeGenerationProvider` chạy offline và có bounded failure mode cho
+tests. `OpenRouterGenerationProvider` dùng `/chat/completions`, `.env` conventions
+hiện có, finite exponential retry cho 429/5xx/timeout/connection errors, không
+retry non-transient 4xx/malformed payload vô hạn, và reject empty/non-text output.
+Không có production call trong test suite.
+
+Generation cache được key bằng `(prompt_fingerprint,
+generation_config_fingerprint)`, validate toàn bộ stored identity/result, và ghi
+atomic. Do đó cùng query nhưng context/order khác không collide giữa strategies;
+cùng exact semantic request có thể reuse an toàn. Answer artifacts gồm
+`answers.jsonl`, `failures.jsonl`, `stats.json`, và `manifest.json`. Cache được ghi
+theo từng successful answer để resume không trả phí lại. Partial/failing runs ghi
+answers và explicit failures nhưng không có manifest; transactional publisher chỉ
+ghi manifest cuối cùng khi mọi expected query thành công.
+
+CLI offline mặc định:
+
+```bash
+generate-answers \
+  --input data/generation-inputs.jsonl \
+  --output data/generation-runs/run-v1 \
+  --cache data/generation-cache \
+  --provider fake
+```
+
+Mỗi input JSONL record chứa đúng `query_id`, `question`, và serialized `context`
+(`ContextResult`). Live OpenRouter generation chỉ xảy ra khi người vận hành chọn
+`--provider openrouter`; CLI không tự động spend API credits.
 
 Các điều kiện phải giữ giống nhau:
 
@@ -984,7 +1043,7 @@ same generator
 same prompt
 same temperature
 same max output tokens
-same retrieval token budget
+same context-window/output policy
 ```
 
 Chỉ chunking strategy thay đổi.
