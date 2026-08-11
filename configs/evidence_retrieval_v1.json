@@ -1,0 +1,20 @@
+{
+  "base_retrieval": {
+    "mode": "dense_vector",
+    "query_normalization": "trim_only",
+    "similarity_metric": "cosine",
+    "tie_breaking_rule": "score_desc_chunk_id_asc"
+  },
+  "evaluation_schema_version": "evidence_retrieval_benchmark_v1",
+  "protocols": {
+    "same_token_budget": {
+      "budget_policy": "whole_chunks_skip_nonfitting_oversized_first_v1",
+      "candidate_k": 50,
+      "token_budget": 2048,
+      "tokenizer": "tiktoken:cl100k_base"
+    },
+    "same_top_k": {
+      "top_k": 5
+    }
+  }
+}

@@ -6,6 +6,7 @@ from typing import Any
 
 
 METRICS_VERSION = "binary_relative_path_metrics_v1"
+EVIDENCE_METRICS_VERSION = "evidence_coverage_metrics_v1"
 CUTOFFS = (1, 3, 5, 10)
 
 
@@ -36,4 +37,35 @@ def aggregate(records: list[dict[str, Any]]) -> dict[str, int | float]:
         "mrr": sum(item["reciprocal_rank"] for item in records) / len(records),
         "recall_at_5": sum(item["recall_at_5"] for item in records) / len(records),
         "recall_at_10": sum(item["recall_at_10"] for item in records) / len(records),
+    }
+
+
+def evaluate_evidence_coverage(unit_coverages: list[float]) -> dict[str, int | float]:
+    """Macro-ready evidence metrics for one query.
+
+    Each value represents the fraction of one required evidence unit covered by
+    selected chunks. Partial boundary coverage is retained for auditability;
+    ``all_evidence_retrieved`` requires complete coverage of every unit.
+    """
+
+    if not unit_coverages:
+        raise ValueError("evidence metrics require at least one evidence unit")
+    if any(type(value) not in (int, float) or not 0 <= value <= 1 for value in unit_coverages):
+        raise ValueError("evidence unit coverage must be between zero and one")
+    coverage = sum(unit_coverages) / len(unit_coverages)
+    return {
+        "evidence_unit_count": len(unit_coverages),
+        "covered_evidence_units": sum(value >= 1.0 for value in unit_coverages),
+        "evidence_coverage": coverage,
+        "all_evidence_retrieved": int(all(value >= 1.0 for value in unit_coverages)),
+    }
+
+
+def aggregate_evidence(records: list[dict[str, Any]]) -> dict[str, int | float]:
+    if not records:
+        return {"query_count": 0, "evidence_coverage": 0.0, "all_evidence_retrieved_rate": 0.0}
+    return {
+        "query_count": len(records),
+        "evidence_coverage": sum(item["evidence_coverage"] for item in records) / len(records),
+        "all_evidence_retrieved_rate": sum(item["all_evidence_retrieved"] for item in records) / len(records),
     }

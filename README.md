@@ -1,4 +1,8 @@
 # System Architecture
+
+For the audited fair retrieval protocols, token-budget semantics, external QA
+adapter, evidence mapping, frozen fingerprints, and compatibility gate, see
+[`RETRIEVAL_PROTOCOL_AUDIT.md`](RETRIEVAL_PROTOCOL_AUDIT.md).
 ## Structure-Aware Chunking for RAG on Technical Documents
 
 ## 1. Mục tiêu hệ thống
@@ -18,10 +22,10 @@ Kiến trúc thí nghiệm mục tiêu so sánh bốn phương pháp:
 
 > **Trạng thái code hiện tại:** repository đã triển khai và tạo artifact cho
 > Fixed-size, Structure-aware và Prompt-based. Original HiChunk (HC200),
-> Auto-Merge, retrieval theo token budget, RAG generation và đánh giá
-> evidence/answer vẫn là thiết kế mục tiêu, chưa có implementation trong
-> `src/rag_chunking/`. Dense retrieval baseline hiện tại đánh giá 3 strategy bằng
-> top-k và gold label ở mức đường dẫn tài liệu.
+> Auto-Merge, RAG generation và đánh giá answer vẫn là thiết kế mục tiêu.
+> Dense retrieval hiện hỗ trợ cả top-k lịch sử và ngân sách token hậu xếp hạng;
+> evidence-aware evaluation dùng QA contract bên ngoài, trong khi baseline cũ
+> vẫn dùng gold label ở mức đường dẫn tài liệu.
 
 ---
 
@@ -51,7 +55,8 @@ flowchart TD
 
     PRE -.-> HICHUNK["Original HiChunk HC200 - planned"]
     HICHUNK -.-> CHUNKS
-    SEARCH -.-> BUDGET["Token-budget and Auto-Merge retrieval - planned"]
+    SEARCH --> BUDGET["Token-budget retrieval"]
+    BUDGET -.-> AUTOMERGE["Auto-Merge - planned"]
     BUDGET -.-> RAG["RAG generation and answer evaluation - planned"]
 ```
 
@@ -69,7 +74,8 @@ Mũi tên liền biểu diễn luồng đã có trong code; mũi tên nét đứ
 | Embedding và index | Đã triển khai | OpenRouter embeddings, backend `local_cosine_jsonl` |
 | Dense retrieval evaluation | Đã triển khai | 64 queries, top-k=10, label ở mức `relative_path` |
 | Original HiChunk HC200 | Chưa triển khai | Chưa có chunker, CLI hoặc artifact |
-| Token-budget / Auto-Merge | Chưa triển khai | Retrieval service hiện nhận `top_k` |
+| Token-budget retrieval | Đã triển khai | `rag_chunking.retrieval.protocols`; hậu xử lý cùng dense ranking |
+| Auto-Merge | Chưa triển khai | Ngoài phạm vi primary experiment |
 | RAG generation / answer evaluation | Chưa triển khai | Chưa có generator hoặc Answer F1/ROUGE-L runner |
 
 ---
@@ -765,7 +771,8 @@ QA có thể được LLM sinh nháp, nhưng phải được kiểm tra thủ c�
 # 11. Module 7 — Retrieval
 
 > **Trạng thái hiện tại:** pure dense cosine retrieval đã được triển khai, nhưng
-> nhận `top_k` (baseline dùng depth 10), chưa dừng theo token budget. Nội dung
+> nhận `top_k` (baseline dùng depth 10). Protocol công bằng bổ sung áp dụng
+> token budget sau dense ranking; nội dung
 > bên dưới mô tả protocol mục tiêu cho thí nghiệm evidence/RAG.
 
 Query được embed bằng cùng embedding model:
