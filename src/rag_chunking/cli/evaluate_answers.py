@@ -6,10 +6,14 @@ import argparse
 import json
 from pathlib import Path
 
+from rag_chunking.benchmark import (
+    project_benchmark_queries, validate_generation_requests_against_preparation,
+    validate_prepared_benchmark_inputs,
+)
 from rag_chunking.data.writer import read_documents_jsonl
 from rag_chunking.evaluation.answer_models import EvaluationConfig, SUPPORTED_METRICS
 from rag_chunking.evaluation.answer_runner import run_answer_benchmark
-from rag_chunking.evaluation.qa_dataset import load_qa_dataset
+from rag_chunking.evaluation.qa_dataset import validate_canonical_qa_dataset
 from rag_chunking.retrieval.models import KNOWN_STRATEGIES
 
 
@@ -32,6 +36,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
+        "--prepared-inputs", type=Path,
+        help="Committed prepare-answer-inputs directory for corpus/context compatibility validation",
+    )
+    parser.add_argument(
         "--metrics", nargs="+", choices=SUPPORTED_METRICS,
         default=list(SUPPORTED_METRICS),
     )
@@ -44,10 +52,30 @@ def main(argv: list[str] | None = None) -> int:
         directories = dict(args.generation)
         if len(directories) != len(args.generation):
             raise ValueError("duplicate generation strategy")
+        if set(directories) == set(KNOWN_STRATEGIES) and args.prepared_inputs is None:
+            raise ValueError("three-strategy evaluation requires --prepared-inputs compatibility lineage")
         documents = read_documents_jsonl(args.documents)
-        dataset = load_qa_dataset(args.dataset, {item.doc_id for item in documents})
+        by_id = {item.doc_id: item for item in documents}
+        if len(by_id) != len(documents):
+            raise ValueError("canonical corpus contains duplicate document IDs")
+        dataset, semantic = validate_canonical_qa_dataset(args.dataset, by_id)
+        if not semantic.valid:
+            raise ValueError(f"canonical QA semantic validation failed: {semantic.errors}")
         config = EvaluationConfig(enabled_metrics=tuple(args.metrics))
-        result = run_answer_benchmark(dataset, directories, args.output, config=config)
+        source_corpus_fingerprint = preparation_fingerprint = None
+        if args.prepared_inputs is not None:
+            prepared = validate_prepared_benchmark_inputs(
+                args.prepared_inputs, dataset_fingerprint=dataset.fingerprint,
+                expected_queries=project_benchmark_queries(dataset.records),
+            )
+            validate_generation_requests_against_preparation(prepared, directories)
+            source_corpus_fingerprint = prepared.manifest["corpus_fingerprint"]
+            preparation_fingerprint = prepared.preparation_fingerprint
+        result = run_answer_benchmark(
+            dataset, directories, args.output, config=config,
+            source_corpus_fingerprint=source_corpus_fingerprint,
+            preparation_fingerprint=preparation_fingerprint,
+        )
     except (OSError, RuntimeError, ValueError) as error:
         print(json.dumps({"error": str(error)}, ensure_ascii=False, sort_keys=True))
         return 1

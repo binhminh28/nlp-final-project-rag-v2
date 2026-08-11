@@ -86,7 +86,12 @@ def validate_answer_benchmark_artifacts(output_directory: Path) -> dict[str, Any
         if [item.get("paired_fingerprint") for item in paired] != manifest.get("paired_fingerprints"):
             raise ValueError("paired fingerprints do not match manifest")
         for item in paired:
-            identity = {key: item[key] for key in ("query_id", "category", "gold_answers", "strategies")}
+            identity = {
+                key: item[key] for key in (
+                    "query_id", "question", "category", "question_type",
+                    "difficulty", "gold_answers", "strategies",
+                )
+            }
             if item.get("paired_fingerprint") != canonical_fingerprint(identity):
                 raise ValueError("paired result fingerprint does not match contents")
         semantic_identity = {
@@ -94,7 +99,8 @@ def validate_answer_benchmark_artifacts(output_directory: Path) -> dict[str, Any
             for key in (
                 "schema_version", "dataset_fingerprint", "evaluation_config",
                 "evaluation_config_fingerprint", "generation_run_identities",
-                "evaluation_inputs", "strategies",
+                "evaluation_inputs", "source_corpus_fingerprint",
+                "preparation_fingerprint", "strategies",
                 "per_query_evaluation_fingerprints", "aggregate_fingerprints", "paired_fingerprints",
             )
         }
@@ -300,7 +306,9 @@ def build_paired_results(
                 "evidence_diagnostics": None,
             }
         identity = {
-            "query_id": record.id, "category": record.question_type,
+            "query_id": record.id, "question": record.question,
+            "category": record.question_type, "question_type": record.question_type,
+            "difficulty": record.difficulty,
             "gold_answers": [record.answer], "strategies": strategies,
         }
         paired.append({**identity, "paired_fingerprint": canonical_fingerprint(identity)})
@@ -317,6 +325,8 @@ def _jsonl(values: list[dict[str, Any]]) -> str:
 def run_answer_benchmark(
     dataset: QADataset, generation_directories: dict[str, Path],
     output_directory: Path, *, config: EvaluationConfig | None = None,
+    source_corpus_fingerprint: str | None = None,
+    preparation_fingerprint: str | None = None,
 ) -> AnswerBenchmarkResult:
     config = config or EvaluationConfig()
     if not generation_directories or set(generation_directories) - KNOWN_STRATEGIES:
@@ -366,6 +376,8 @@ def run_answer_benchmark(
     identity = {
         "schema_version": ANSWER_EVALUATION_RUN_SCHEMA_VERSION,
         "dataset_fingerprint": dataset.fingerprint,
+        "source_corpus_fingerprint": source_corpus_fingerprint,
+        "preparation_fingerprint": preparation_fingerprint,
         "evaluation_config": config.identity(),
         "evaluation_config_fingerprint": config.fingerprint,
         "generation_run_identities": {

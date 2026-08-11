@@ -16,6 +16,15 @@ data/processed/angular/*.jsonl
 # Reproducible generated chunk artifacts
 /data
 
+# Teammate-owned canonical QA handoff: this one semantic input may be versioned.
+!/data/
+/data/*
+!/data/evaluation/
+/data/evaluation/*
+!/data/evaluation/angular/
+/data/evaluation/angular/*
+!/data/evaluation/angular/canonical_qa_v1.jsonl
+
 # Environment files
 .env
 !.env.example

@@ -139,7 +139,9 @@ class QASemanticValidationReport:
 def _read_records(path: Path) -> list[dict[str, Any]]:
     text = path.read_text(encoding="utf-8")
     if path.suffix.lower() == ".json":
-        value = json.loads(text)
+        value = json.loads(
+            text, parse_constant=_reject_constant, object_pairs_hook=_unique_object,
+        )
         if not isinstance(value, list):
             raise ValueError("QA JSON must contain an array")
         return value
@@ -148,10 +150,37 @@ def _read_records(path: Path) -> list[dict[str, Any]]:
         if not line.strip():
             continue
         try:
-            records.append(json.loads(line))
+            records.append(json.loads(
+                line, parse_constant=_reject_constant, object_pairs_hook=_unique_object,
+            ))
         except json.JSONDecodeError as error:
             raise ValueError(f"Invalid QA JSONL at {path}:{line_number}: {error}") from error
     return records
+
+
+def _reject_constant(value: str) -> None:
+    raise ValueError(f"non-standard JSON constant {value}")
+
+
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key {key!r}")
+        result[key] = value
+    return result
+
+
+def qa_dataset_fingerprint(
+    records: list[QARecord], *, schema_version: str = QA_DATASET_SCHEMA_VERSION,
+) -> str:
+    if schema_version != QA_DATASET_SCHEMA_VERSION:
+        raise ValueError(f"unsupported QA dataset schema {schema_version!r}")
+    ordered = sorted(records, key=lambda record: record.id)
+    return canonical_fingerprint({
+        "schema_version": schema_version,
+        "records": [record.to_dict() for record in ordered],
+    })
 
 
 def load_qa_dataset(
@@ -172,11 +201,7 @@ def load_qa_dataset(
     if missing:
         raise ValueError(f"QA doc_id values are absent from canonical corpus: {missing}")
     ordered = sorted(records, key=lambda record: record.id)
-    identity = {
-        "schema_version": QA_DATASET_SCHEMA_VERSION,
-        "records": [record.to_dict() for record in ordered],
-    }
-    return QADataset(ordered, canonical_fingerprint(identity))
+    return QADataset(ordered, qa_dataset_fingerprint(ordered))
 
 
 def validate_qa_semantics(
@@ -201,6 +226,59 @@ def validate_qa_semantics(
         if not record.evidence_sentences and not record.evidence_sections:
             report.warnings.append(f"{record.id}: answer has no declared evidence")
     return report
+
+
+def validate_canonical_qa_dataset(
+    path: Path, documents: dict[str, NormalizedDocument],
+) -> tuple[QADataset, QASemanticValidationReport]:
+    """Strict teammate-handoff validation without repairing QA content."""
+
+    dataset = load_qa_dataset(path, set(documents))
+    if dataset.schema_version != QA_DATASET_SCHEMA_VERSION:
+        raise ValueError(f"unsupported QA dataset schema {dataset.schema_version!r}")
+    expected_fingerprint = qa_dataset_fingerprint(
+        dataset.records, schema_version=dataset.schema_version,
+    )
+    if dataset.fingerprint != expected_fingerprint:
+        raise ValueError("QA dataset fingerprint does not match semantic contents")
+    report = validate_qa_semantics(dataset, documents)
+    report.errors.extend(_strict_provenance_errors(dataset, documents))
+    return dataset, report
+
+
+def _strict_provenance_errors(
+    dataset: QADataset, documents: dict[str, NormalizedDocument],
+) -> list[str]:
+    errors: list[str] = []
+    for record in dataset.records:
+        document = documents[record.doc_id]
+        if not record.evidence_sentences and not record.evidence_sections:
+            errors.append(f"{record.id}: at least one evidence sentence or section is required")
+        source = "\n\n".join(block.text for block in document.blocks)
+        for index, evidence in enumerate(record.evidence_sentences):
+            label = f"{record.id}: evidence sentence {index}"
+            if evidence.block_index is None:
+                if evidence.text not in source and _normalize_text(evidence.text) not in _normalize_text(source):
+                    errors.append(f"{label} is absent from the canonical document")
+                continue
+            if evidence.block_index >= len(document.blocks):
+                errors.append(f"{label} block_index is outside the canonical document")
+                continue
+            block = document.blocks[evidence.block_index]
+            if evidence.char_start is None:
+                if evidence.text not in block.text and _normalize_text(evidence.text) not in _normalize_text(block.text):
+                    errors.append(f"{label} is absent from its declared block")
+                continue
+            assert evidence.char_end is not None
+            if evidence.char_end > len(block.text):
+                errors.append(f"{label} character span exceeds its declared block")
+            elif block.text[evidence.char_start:evidence.char_end] != evidence.text:
+                errors.append(f"{label} text does not equal its declared character span")
+        paths = _document_section_paths(document)
+        for section in record.evidence_sections:
+            if _normalize_text(section) not in paths:
+                errors.append(f"{record.id}: evidence section is absent: {section}")
+    return errors
 
 
 def _normalize_text(value: str) -> str:

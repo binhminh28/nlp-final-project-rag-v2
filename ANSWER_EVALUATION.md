@@ -111,6 +111,8 @@ category, and diagnostic code. Strategy is only provenance and input selection.
 `paired.jsonl` aligns every QA query with each supplied strategy's statuses,
 metrics, result/evaluation fingerprints, gold answer, and category. It performs
 no ranking, winner selection, significance test, or causal attribution.
+It also preserves the exact question, `question_type`, and difficulty for later
+descriptive analysis without changing scoring semantics.
 
 Gold evidence can be mapped reliably to chunks by the retrieval evidence layer,
 but committed `AnswerResult` rows do not contain selected context piece IDs.

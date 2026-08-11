@@ -6,6 +6,9 @@ adapter, evidence mapping, frozen fingerprints, and compatibility gate, see
 For the terminal offline answer evaluator, frozen lexical metrics, failure-aware
 denominators, and paired strategy artifacts, see
 [`ANSWER_EVALUATION.md`](ANSWER_EVALUATION.md).
+For the teammate-owned QA import contract, read-only preflight, exact production
+commands, and code-readiness versus experiment-completion boundary, see
+[`FINAL_BENCHMARK_HANDOFF.md`](FINAL_BENCHMARK_HANDOFF.md).
 ## Structure-Aware Chunking for RAG on Technical Documents
 
 ## 1. Mục tiêu hệ thống
@@ -717,10 +720,11 @@ data/indexes/angular/
 
 # 10. Module 6 — QA Benchmark
 
-> **Thiết kế mục tiêu, chưa phải benchmark hiện tại.** Dataset đang có gồm 64
-> query thuộc 8 category, với 79 relevance labels ở mức `relative_path`; chưa có
-> taxonomy T0/T1/T2, gold evidence sentence hoặc gold answer. Schema thật được
-> mô tả trong `RETRIEVAL_EVALUATION.md`.
+> **Hai dataset không được trộn lẫn.** Artifact lịch sử hiện có gồm 64 query
+> retrieval thuộc 8 category, với 79 relevance labels ở mức `relative_path`.
+> Đây không phải canonical answer/evidence QA dataset. Dataset production có
+> gold answer/evidence đang chờ teammate bàn giao theo
+> `FINAL_BENCHMARK_HANDOFF.md`; không có query count production hard-code.
 
 Tạo một mini benchmark gồm khoảng:
 

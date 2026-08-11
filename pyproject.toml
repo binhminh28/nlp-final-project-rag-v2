@@ -38,6 +38,9 @@ run-hybrid-experiment = "rag_chunking.cli.run_hybrid_experiment:main"
 analyze-experiment-uncertainty = "rag_chunking.cli.analyze_experiment_uncertainty:main"
 generate-answers = "rag_chunking.cli.generate_answers:main"
 evaluate-answers = "rag_chunking.cli.evaluate_answers:main"
+validate-qa-dataset = "rag_chunking.cli.validate_qa_dataset:main"
+prepare-answer-inputs = "rag_chunking.cli.prepare_answer_inputs:main"
+benchmark-preflight = "rag_chunking.cli.benchmark_preflight:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
