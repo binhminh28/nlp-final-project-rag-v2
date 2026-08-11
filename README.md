@@ -25,7 +25,8 @@ Kiến trúc thí nghiệm mục tiêu so sánh bốn phương pháp:
 > Auto-Merge, RAG generation và đánh giá answer vẫn là thiết kế mục tiêu.
 > Dense retrieval hiện hỗ trợ cả top-k lịch sử và ngân sách token hậu xếp hạng;
 > evidence-aware evaluation dùng QA contract bên ngoài, trong khi baseline cũ
-> vẫn dùng gold label ở mức đường dẫn tài liệu.
+> vẫn dùng gold label ở mức đường dẫn tài liệu. Deterministic Context
+> Construction đã được triển khai; generation và answer evaluation chưa có.
 
 ---
 
@@ -57,7 +58,8 @@ flowchart TD
     HICHUNK -.-> CHUNKS
     SEARCH --> BUDGET["Token-budget retrieval"]
     BUDGET -.-> AUTOMERGE["Auto-Merge - planned"]
-    BUDGET -.-> RAG["RAG generation and answer evaluation - planned"]
+    BUDGET --> CONTEXT["Deterministic context construction"]
+    CONTEXT -.-> RAG["RAG generation and answer evaluation - planned"]
 ```
 
 Mũi tên liền biểu diễn luồng đã có trong code; mũi tên nét đứt biểu diễn phần
@@ -75,6 +77,7 @@ Mũi tên liền biểu diễn luồng đã có trong code; mũi tên nét đứ
 | Dense retrieval evaluation | Đã triển khai | 64 queries, top-k=10, label ở mức `relative_path` |
 | Original HiChunk HC200 | Chưa triển khai | Chưa có chunker, CLI hoặc artifact |
 | Token-budget retrieval | Đã triển khai | `rag_chunking.retrieval.protocols`; hậu xử lý cùng dense ranking |
+| Context construction | Đã triển khai | `rag_chunking.context`; định dạng và token budget độc lập, deterministic |
 | Auto-Merge | Chưa triển khai | Ngoài phạm vi primary experiment |
 | RAG generation / answer evaluation | Chưa triển khai | Chưa có generator hoặc Answer F1/ROUGE-L runner |
 
@@ -823,6 +826,42 @@ Stop when total context reaches token budget
 ```
 
 Điều này đảm bảo các chunking methods nhận cùng lượng context tối đa.
+
+## 11.1 Context Construction
+
+`rag_chunking.context` nhận trực tiếp các `RetrievalHit` đã được protocol chọn;
+Context Builder không chạy retrieval lần hai và không tối ưu retrieval. Thứ tự
+đầu vào được giữ nguyên theo retrieval rank, kể cả khi rank không liên tục.
+
+Định dạng baseline `context_format_v1` được đóng băng như sau (không có separator
+sau block cuối):
+
+```text
+[CONTEXT 1]
+{exact chunk text}
+
+[CONTEXT 2]
+{exact chunk text}
+```
+
+Label chỉ dựa trên vị trí trong danh sách đã chọn. Context hiển thị không chứa
+strategy, score, chunk ID, source path, hierarchy, planner metadata hoặc gold
+evidence. Whitespace trong chunk text được giữ nguyên tuyệt đối. Duplicate chunk
+ID là invariant violation; text trùng lặp và source overlap từ các chunk ID khác
+nhau được giữ nguyên để không thiên lệch bất kỳ chunking strategy nào.
+
+Hai số token có ý nghĩa khác nhau:
+
+- `raw_selected_chunk_tokens` là tổng `RetrievalHit.token_count`, chỉ tính chunk
+  text theo semantics của retrieval.
+- `rendered_context_tokens` là số token khi encode lại chính xác chuỗi context
+  cuối cùng bằng `tiktoken:cl100k_base`, gồm label, newline và separator.
+
+`context_token_budget` độc lập với `retrieval_token_budget`. Nếu serialized
+context vượt budget, builder fail trước generation và báo diagnostics; nó không
+truncate, bỏ chunk, chạy lại retrieval hay thay đổi selection. Cùng một
+`ContextConfig` và cùng implementation được dùng cho `fixed_size`,
+`structure_aware` và `prompt_based`.
 
 ---
 
