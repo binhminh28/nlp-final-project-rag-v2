@@ -43,6 +43,7 @@ audit-dataset-compatibility = "rag_chunking.cli.audit_dataset_compatibility:main
 reconcile-qa-dataset = "rag_chunking.cli.reconcile_qa_dataset:main"
 prepare-answer-inputs = "rag_chunking.cli.prepare_answer_inputs:main"
 benchmark-preflight = "rag_chunking.cli.benchmark_preflight:main"
+benchmark-freeze = "rag_chunking.cli.benchmark_freeze:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
