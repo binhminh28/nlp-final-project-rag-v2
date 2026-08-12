@@ -15,6 +15,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]
+analysis = ["scipy==1.18.0"]
 
 [project.scripts]
 preprocess-angular = "rag_chunking.cli.preprocess:main"
@@ -44,6 +45,7 @@ reconcile-qa-dataset = "rag_chunking.cli.reconcile_qa_dataset:main"
 prepare-answer-inputs = "rag_chunking.cli.prepare_answer_inputs:main"
 benchmark-preflight = "rag_chunking.cli.benchmark_preflight:main"
 benchmark-freeze = "rag_chunking.cli.benchmark_freeze:main"
+statistical-analysis = "rag_chunking.cli.statistical_analysis:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
