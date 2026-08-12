@@ -3,75 +3,75 @@
   "breakdown": {
     "difficulty": {
       "easy": {
-        "compatible": 49,
+        "compatible": 60,
         "total": 60
       },
       "hard": {
-        "compatible": 17,
+        "compatible": 40,
         "total": 40
       },
       "medium": {
-        "compatible": 28,
+        "compatible": 40,
         "total": 40
       }
     },
     "evidence_scope": {
       "cross_document": {
-        "compatible": 4,
+        "compatible": 12,
         "total": 12
       },
       "cross_section": {
-        "compatible": 14,
+        "compatible": 29,
         "total": 29
       },
       "single_section": {
-        "compatible": 76,
+        "compatible": 99,
         "total": 99
       }
     },
     "question_type": {
       "behavior": {
-        "compatible": 21,
+        "compatible": 22,
         "total": 22
       },
       "cause_effect": {
-        "compatible": 0,
+        "compatible": 2,
         "total": 2
       },
       "comparison": {
-        "compatible": 14,
+        "compatible": 26,
         "total": 26
       },
       "definition": {
-        "compatible": 13,
+        "compatible": 15,
         "total": 15
       },
       "fact": {
-        "compatible": 18,
+        "compatible": 21,
         "total": 21
       },
       "list": {
-        "compatible": 3,
+        "compatible": 4,
         "total": 4
       },
       "mechanism": {
-        "compatible": 3,
+        "compatible": 7,
         "total": 7
       },
       "procedure": {
-        "compatible": 8,
+        "compatible": 11,
         "total": 11
       },
       "security_mechanism": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       },
       "sequence": {
-        "compatible": 2,
+        "compatible": 3,
         "total": 3
       },
       "syntax": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       },
       "synthesis": {
@@ -79,17 +79,17 @@
         "total": 2
       },
       "tradeoff": {
-        "compatible": 3,
+        "compatible": 10,
         "total": 10
       },
       "why": {
-        "compatible": 7,
+        "compatible": 15,
         "total": 15
       }
     },
     "reasoning_type": {
       "api_design_reasoning": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       },
       "behavioral_comparison": {
@@ -97,19 +97,19 @@
         "total": 1
       },
       "cause_effect": {
-        "compatible": 2,
+        "compatible": 3,
         "total": 3
       },
       "comparison": {
-        "compatible": 8,
+        "compatible": 14,
         "total": 14
       },
       "context_reasoning": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       },
       "cross_api_comparison": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       },
       "cross_api_synthesis": {
@@ -117,11 +117,11 @@
         "total": 1
       },
       "cross_document_synthesis": {
-        "compatible": 4,
+        "compatible": 11,
         "total": 11
       },
       "cross_section_synthesis": {
-        "compatible": 2,
+        "compatible": 6,
         "total": 6
       },
       "decision_reasoning": {
@@ -137,27 +137,27 @@
         "total": 1
       },
       "multi_fact_synthesis": {
-        "compatible": 18,
+        "compatible": 23,
         "total": 23
       },
       "multi_step_synthesis": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       },
       "ordered_synthesis": {
-        "compatible": 1,
+        "compatible": 2,
         "total": 2
       },
       "ownership_reasoning": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       },
       "scope_reasoning": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       },
       "single_fact": {
-        "compatible": 49,
+        "compatible": 60,
         "total": 60
       },
       "state_comparison": {
@@ -165,19 +165,19 @@
         "total": 1
       },
       "state_propagation": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       },
       "state_transition": {
-        "compatible": 2,
+        "compatible": 3,
         "total": 3
       },
       "stateful_reasoning": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       },
       "structural_reasoning": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       },
       "temporal_synthesis": {
@@ -189,7 +189,7 @@
         "total": 1
       },
       "version_consistency": {
-        "compatible": 0,
+        "compatible": 1,
         "total": 1
       }
     }
@@ -202,28 +202,28 @@
   "chunk_mapping": {
     "fixed_size": {
       "artifact_errors": [],
-      "compatible_questions": 94,
-      "mapped_evidence": 190,
+      "compatible_questions": 140,
+      "mapped_evidence": 233,
       "total_evidence": 233,
-      "unmapped_evidence": 43
+      "unmapped_evidence": 0
     },
     "prompt_based": {
       "artifact_errors": [],
-      "compatible_questions": 94,
-      "mapped_evidence": 190,
+      "compatible_questions": 140,
+      "mapped_evidence": 233,
       "total_evidence": 233,
-      "unmapped_evidence": 43
+      "unmapped_evidence": 0
     },
     "structure_aware": {
       "artifact_errors": [],
-      "compatible_questions": 94,
-      "mapped_evidence": 190,
+      "compatible_questions": 140,
+      "mapped_evidence": 233,
       "total_evidence": 233,
-      "unmapped_evidence": 43
+      "unmapped_evidence": 0
     }
   },
-  "compatibility_fingerprint": "94356d57051beea4279b573163d15717260be29af7337816187f844e197741c1",
-  "compatible_question_count": 94,
+  "compatibility_fingerprint": "844cfdfd795bdecae0ac7d62ca400bc9dcb5777c55f5370460ac2a5018c9704b",
+  "compatible_question_count": 140,
   "corpus_fingerprint": "44ec8ae894520ecad7fd5ea177dedc785949ff9a6ce8ac0b69ce26f133563dad",
   "corpus_integrity_errors": [],
   "dataset_audit": {
@@ -300,7 +300,7 @@
       "reference_answer": 0
     },
     "evidence_item_count": 233,
-    "evidence_sentence_count": 349,
+    "evidence_sentence_count": 353,
     "field_presence": {
       "difficulty": 140,
       "evidence": 140,
@@ -319,7 +319,7 @@
     "unknown_fields": [],
     "unknown_metadata_fields": []
   },
-  "dataset_fingerprint": "cea4e11d87a353b084b73f95b231bf7c41a1a2c651312295ffe5bcb2a0bd03b6",
+  "dataset_fingerprint": "9866799ea8f87c6a7c118cbaf0d8c298524757bd753db5d640e1a32234206d74",
   "dataset_path": "data/evaluation/angular/qa_dataset.jsonl",
   "dataset_schema_version": "team_evidence_qa_adapter_v1",
   "document_resolution": {
@@ -328,78 +328,24 @@
     "resolved": 233,
     "unresolved": 0
   },
-  "evidence_chunk_mappings_fingerprint": "ea685c45cdc333a132eb611afd38944343e0a0465d3b6b727143ea06445eb05a",
+  "evidence_chunk_mappings_fingerprint": "4f94f55a372e18d83eee756b521886aee3fbab2ca78c1150d865243d00f7b68a",
   "evidence_item_count": 233,
-  "evidence_sentence_count": 349,
+  "evidence_sentence_count": 353,
   "evidence_sentence_resolution": {
     "ambiguous": 0,
-    "exact": 205,
+    "exact": 272,
     "invalid": 0,
-    "normalized_exact": 93,
-    "unresolved": 51
+    "normalized_exact": 81,
+    "unresolved": 0
   },
-  "failure_root_cause_counts": {
-    "ambiguous_section_mapping": 1,
-    "corpus_version_mismatch": 43,
-    "evidence_text_normalization_issue": 8,
-    "section_path_mismatch": 13
-  },
-  "gate_decision": "FAIL",
+  "failure_root_cause_counts": {},
+  "gate_decision": "PASS",
   "gate_policy_version": "strict_all_required_evidence_all_strategies_v1",
   "gate_reasons": [
-    "one or more section paths do not resolve uniquely",
-    "one or more evidence sentences do not resolve uniquely",
-    "one or more evidence items do not map to every chunk strategy"
+    "all strict dataset, provenance, and chunk coverage checks passed"
   ],
-  "incompatible_question_count": 46,
-  "incompatible_question_ids": [
-    "q_easy_005",
-    "q_easy_011",
-    "q_easy_019",
-    "q_easy_020",
-    "q_easy_023",
-    "q_easy_028",
-    "q_easy_029",
-    "q_easy_033",
-    "q_easy_050",
-    "q_easy_051",
-    "q_easy_053",
-    "q_hard_001",
-    "q_hard_004",
-    "q_hard_007",
-    "q_hard_008",
-    "q_hard_011",
-    "q_hard_012",
-    "q_hard_014",
-    "q_hard_019",
-    "q_hard_020",
-    "q_hard_021",
-    "q_hard_022",
-    "q_hard_023",
-    "q_hard_024",
-    "q_hard_027",
-    "q_hard_029",
-    "q_hard_031",
-    "q_hard_032",
-    "q_hard_035",
-    "q_hard_036",
-    "q_hard_037",
-    "q_hard_038",
-    "q_hard_039",
-    "q_hard_040",
-    "q_medium_002",
-    "q_medium_006",
-    "q_medium_012",
-    "q_medium_013",
-    "q_medium_014",
-    "q_medium_018",
-    "q_medium_020",
-    "q_medium_022",
-    "q_medium_026",
-    "q_medium_032",
-    "q_medium_033",
-    "q_medium_034"
-  ],
+  "incompatible_question_count": 0,
+  "incompatible_question_ids": [],
   "invalid_question_count": 0,
   "question_count": 140,
   "question_status": {
@@ -407,13 +353,13 @@
     "q_easy_002": "compatible",
     "q_easy_003": "compatible_with_warning",
     "q_easy_004": "compatible",
-    "q_easy_005": "incompatible",
+    "q_easy_005": "compatible",
     "q_easy_006": "compatible_with_warning",
     "q_easy_007": "compatible_with_warning",
     "q_easy_008": "compatible",
     "q_easy_009": "compatible",
     "q_easy_010": "compatible_with_warning",
-    "q_easy_011": "incompatible",
+    "q_easy_011": "compatible",
     "q_easy_012": "compatible_with_warning",
     "q_easy_013": "compatible",
     "q_easy_014": "compatible_with_warning",
@@ -421,21 +367,21 @@
     "q_easy_016": "compatible_with_warning",
     "q_easy_017": "compatible",
     "q_easy_018": "compatible",
-    "q_easy_019": "incompatible",
-    "q_easy_020": "incompatible",
+    "q_easy_019": "compatible",
+    "q_easy_020": "compatible",
     "q_easy_021": "compatible",
     "q_easy_022": "compatible_with_warning",
-    "q_easy_023": "incompatible",
+    "q_easy_023": "compatible",
     "q_easy_024": "compatible",
     "q_easy_025": "compatible_with_warning",
     "q_easy_026": "compatible",
     "q_easy_027": "compatible",
-    "q_easy_028": "incompatible",
-    "q_easy_029": "incompatible",
+    "q_easy_028": "compatible",
+    "q_easy_029": "compatible",
     "q_easy_030": "compatible",
     "q_easy_031": "compatible",
     "q_easy_032": "compatible",
-    "q_easy_033": "incompatible",
+    "q_easy_033": "compatible",
     "q_easy_034": "compatible_with_warning",
     "q_easy_035": "compatible_with_warning",
     "q_easy_036": "compatible_with_warning",
@@ -452,10 +398,10 @@
     "q_easy_047": "compatible",
     "q_easy_048": "compatible_with_warning",
     "q_easy_049": "compatible",
-    "q_easy_050": "incompatible",
-    "q_easy_051": "incompatible",
+    "q_easy_050": "compatible",
+    "q_easy_051": "compatible",
     "q_easy_052": "compatible_with_warning",
-    "q_easy_053": "incompatible",
+    "q_easy_053": "compatible",
     "q_easy_054": "compatible_with_warning",
     "q_easy_055": "compatible",
     "q_easy_056": "compatible_with_warning",
@@ -463,80 +409,80 @@
     "q_easy_058": "compatible",
     "q_easy_059": "compatible",
     "q_easy_060": "compatible_with_warning",
-    "q_hard_001": "incompatible",
+    "q_hard_001": "compatible",
     "q_hard_002": "compatible_with_warning",
     "q_hard_003": "compatible_with_warning",
-    "q_hard_004": "incompatible",
+    "q_hard_004": "compatible_with_warning",
     "q_hard_005": "compatible",
     "q_hard_006": "compatible_with_warning",
-    "q_hard_007": "incompatible",
-    "q_hard_008": "incompatible",
+    "q_hard_007": "compatible_with_warning",
+    "q_hard_008": "compatible_with_warning",
     "q_hard_009": "compatible",
     "q_hard_010": "compatible_with_warning",
-    "q_hard_011": "incompatible",
-    "q_hard_012": "incompatible",
+    "q_hard_011": "compatible",
+    "q_hard_012": "compatible_with_warning",
     "q_hard_013": "compatible",
-    "q_hard_014": "incompatible",
+    "q_hard_014": "compatible",
     "q_hard_015": "compatible_with_warning",
     "q_hard_016": "compatible_with_warning",
     "q_hard_017": "compatible_with_warning",
     "q_hard_018": "compatible",
-    "q_hard_019": "incompatible",
-    "q_hard_020": "incompatible",
-    "q_hard_021": "incompatible",
-    "q_hard_022": "incompatible",
-    "q_hard_023": "incompatible",
-    "q_hard_024": "incompatible",
+    "q_hard_019": "compatible_with_warning",
+    "q_hard_020": "compatible",
+    "q_hard_021": "compatible",
+    "q_hard_022": "compatible_with_warning",
+    "q_hard_023": "compatible",
+    "q_hard_024": "compatible",
     "q_hard_025": "compatible_with_warning",
     "q_hard_026": "compatible_with_warning",
-    "q_hard_027": "incompatible",
+    "q_hard_027": "compatible_with_warning",
     "q_hard_028": "compatible_with_warning",
-    "q_hard_029": "incompatible",
+    "q_hard_029": "compatible",
     "q_hard_030": "compatible_with_warning",
-    "q_hard_031": "incompatible",
-    "q_hard_032": "incompatible",
+    "q_hard_031": "compatible",
+    "q_hard_032": "compatible",
     "q_hard_033": "compatible",
     "q_hard_034": "compatible_with_warning",
-    "q_hard_035": "incompatible",
-    "q_hard_036": "incompatible",
-    "q_hard_037": "incompatible",
-    "q_hard_038": "incompatible",
-    "q_hard_039": "incompatible",
-    "q_hard_040": "incompatible",
+    "q_hard_035": "compatible",
+    "q_hard_036": "compatible",
+    "q_hard_037": "compatible",
+    "q_hard_038": "compatible",
+    "q_hard_039": "compatible",
+    "q_hard_040": "compatible",
     "q_medium_001": "compatible_with_warning",
-    "q_medium_002": "incompatible",
+    "q_medium_002": "compatible_with_warning",
     "q_medium_003": "compatible_with_warning",
     "q_medium_004": "compatible_with_warning",
     "q_medium_005": "compatible_with_warning",
-    "q_medium_006": "incompatible",
+    "q_medium_006": "compatible",
     "q_medium_007": "compatible",
     "q_medium_008": "compatible",
     "q_medium_009": "compatible",
     "q_medium_010": "compatible_with_warning",
     "q_medium_011": "compatible_with_warning",
-    "q_medium_012": "incompatible",
-    "q_medium_013": "incompatible",
-    "q_medium_014": "incompatible",
+    "q_medium_012": "compatible",
+    "q_medium_013": "compatible",
+    "q_medium_014": "compatible",
     "q_medium_015": "compatible_with_warning",
     "q_medium_016": "compatible_with_warning",
     "q_medium_017": "compatible_with_warning",
-    "q_medium_018": "incompatible",
+    "q_medium_018": "compatible",
     "q_medium_019": "compatible_with_warning",
-    "q_medium_020": "incompatible",
+    "q_medium_020": "compatible",
     "q_medium_021": "compatible",
-    "q_medium_022": "incompatible",
+    "q_medium_022": "compatible",
     "q_medium_023": "compatible_with_warning",
     "q_medium_024": "compatible",
     "q_medium_025": "compatible_with_warning",
-    "q_medium_026": "incompatible",
+    "q_medium_026": "compatible",
     "q_medium_027": "compatible",
     "q_medium_028": "compatible_with_warning",
     "q_medium_029": "compatible_with_warning",
     "q_medium_030": "compatible_with_warning",
     "q_medium_031": "compatible",
-    "q_medium_032": "incompatible",
-    "q_medium_033": "incompatible",
-    "q_medium_034": "incompatible",
+    "q_medium_032": "compatible",
+    "q_medium_033": "compatible",
+    "q_medium_034": "compatible",
     "q_medium_035": "compatible",
     "q_medium_036": "compatible_with_warning",
     "q_medium_037": "compatible_with_warning",
@@ -546,14 +492,14 @@
   },
   "schema_version": "dataset_chunk_compatibility_v1",
   "section_resolution": {
-    "ambiguous": 1,
+    "ambiguous": 0,
     "invalid": 0,
-    "resolved": 219,
-    "unresolved": 13
+    "resolved": 233,
+    "unresolved": 0
   },
   "unique_referenced_documents": 55,
-  "unresolved_case_count": 65,
-  "unresolved_cases_fingerprint": "e8831efc9035c61d1d676c6b5868ab7c6fce4cb9ea14438f9b650413c7571890",
+  "unresolved_case_count": 0,
+  "unresolved_cases_fingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
   "valid_question_count": 140,
   "warnings": [
     {
@@ -573,6 +519,10 @@
     {
       "messages": [],
       "question_id": "q_easy_004"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_005"
     },
     {
       "messages": [
@@ -599,6 +549,10 @@
         "q_easy_010_e01 sentence 0: normalized exact match"
       ],
       "question_id": "q_easy_010"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_011"
     },
     {
       "messages": [
@@ -639,6 +593,14 @@
     },
     {
       "messages": [],
+      "question_id": "q_easy_019"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_020"
+    },
+    {
+      "messages": [],
       "question_id": "q_easy_021"
     },
     {
@@ -646,6 +608,10 @@
         "q_easy_022_e01 sentence 0: normalized exact match"
       ],
       "question_id": "q_easy_022"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_023"
     },
     {
       "messages": [],
@@ -666,10 +632,12 @@
       "question_id": "q_easy_027"
     },
     {
-      "messages": [
-        "q_easy_028_e01 sentence 0: normalized exact match"
-      ],
+      "messages": [],
       "question_id": "q_easy_028"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_029"
     },
     {
       "messages": [],
@@ -682,6 +650,10 @@
     {
       "messages": [],
       "question_id": "q_easy_032"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_033"
     },
     {
       "messages": [
@@ -762,10 +734,22 @@
       "question_id": "q_easy_049"
     },
     {
+      "messages": [],
+      "question_id": "q_easy_050"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_051"
+    },
+    {
       "messages": [
         "q_easy_052_e01 sentence 0: normalized exact match"
       ],
       "question_id": "q_easy_052"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_053"
     },
     {
       "messages": [
@@ -802,10 +786,7 @@
       "question_id": "q_easy_060"
     },
     {
-      "messages": [
-        "q_hard_001_e01 sentence 0: normalized exact match",
-        "q_hard_001_e02 sentence 0: normalized exact match"
-      ],
+      "messages": [],
       "question_id": "q_hard_001"
     },
     {
@@ -864,6 +845,10 @@
       "question_id": "q_hard_010"
     },
     {
+      "messages": [],
+      "question_id": "q_hard_011"
+    },
+    {
       "messages": [
         "q_hard_012_e02 sentence 0: normalized exact match"
       ],
@@ -872,6 +857,10 @@
     {
       "messages": [],
       "question_id": "q_hard_013"
+    },
+    {
+      "messages": [],
+      "question_id": "q_hard_014"
     },
     {
       "messages": [
@@ -898,29 +887,32 @@
     },
     {
       "messages": [
-        "q_hard_019_e01: normalized section match",
-        "q_hard_019_e02 sentence 1: normalized exact match"
+        "q_hard_019_e01: normalized section match"
       ],
       "question_id": "q_hard_019"
     },
     {
-      "messages": [
-        "q_hard_020_e01 sentence 0: normalized exact match",
-        "q_hard_020_e02 sentence 0: normalized exact match"
-      ],
+      "messages": [],
       "question_id": "q_hard_020"
     },
     {
+      "messages": [],
+      "question_id": "q_hard_021"
+    },
+    {
       "messages": [
-        "q_hard_022_e01 sentence 0: normalized exact match"
+        "q_hard_022_e01 sentence 0: normalized exact match",
+        "q_hard_022_e02: normalized section match"
       ],
       "question_id": "q_hard_022"
     },
     {
-      "messages": [
-        "q_hard_023_e02 sentence 0: normalized exact match"
-      ],
+      "messages": [],
       "question_id": "q_hard_023"
+    },
+    {
+      "messages": [],
+      "question_id": "q_hard_024"
     },
     {
       "messages": [
@@ -951,11 +943,23 @@
       "question_id": "q_hard_028"
     },
     {
+      "messages": [],
+      "question_id": "q_hard_029"
+    },
+    {
       "messages": [
         "q_hard_030_e01 sentence 0: normalized exact match",
         "q_hard_030_e01 sentence 1: normalized exact match"
       ],
       "question_id": "q_hard_030"
+    },
+    {
+      "messages": [],
+      "question_id": "q_hard_031"
+    },
+    {
+      "messages": [],
+      "question_id": "q_hard_032"
     },
     {
       "messages": [],
@@ -968,10 +972,28 @@
       "question_id": "q_hard_034"
     },
     {
-      "messages": [
-        "q_hard_035_e03 sentence 0: normalized exact match"
-      ],
+      "messages": [],
       "question_id": "q_hard_035"
+    },
+    {
+      "messages": [],
+      "question_id": "q_hard_036"
+    },
+    {
+      "messages": [],
+      "question_id": "q_hard_037"
+    },
+    {
+      "messages": [],
+      "question_id": "q_hard_038"
+    },
+    {
+      "messages": [],
+      "question_id": "q_hard_039"
+    },
+    {
+      "messages": [],
+      "question_id": "q_hard_040"
     },
     {
       "messages": [
@@ -1007,6 +1029,10 @@
     },
     {
       "messages": [],
+      "question_id": "q_medium_006"
+    },
+    {
+      "messages": [],
       "question_id": "q_medium_007"
     },
     {
@@ -1032,9 +1058,15 @@
       "question_id": "q_medium_011"
     },
     {
-      "messages": [
-        "q_medium_014_e02 sentence 0: normalized exact match"
-      ],
+      "messages": [],
+      "question_id": "q_medium_012"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_013"
+    },
+    {
+      "messages": [],
       "question_id": "q_medium_014"
     },
     {
@@ -1061,20 +1093,26 @@
       "question_id": "q_medium_017"
     },
     {
+      "messages": [],
+      "question_id": "q_medium_018"
+    },
+    {
       "messages": [
         "q_medium_019_e02 sentence 1: normalized exact match"
       ],
       "question_id": "q_medium_019"
     },
     {
-      "messages": [
-        "q_medium_020_e02 sentence 1: normalized exact match"
-      ],
+      "messages": [],
       "question_id": "q_medium_020"
     },
     {
       "messages": [],
       "question_id": "q_medium_021"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_022"
     },
     {
       "messages": [
@@ -1091,6 +1129,10 @@
         "q_medium_025_e02 sentence 1: normalized exact match"
       ],
       "question_id": "q_medium_025"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_026"
     },
     {
       "messages": [],
@@ -1121,11 +1163,16 @@
       "question_id": "q_medium_031"
     },
     {
-      "messages": [
-        "q_medium_032_e01 sentence 0: normalized exact match",
-        "q_medium_032_e02 sentence 0: normalized exact match"
-      ],
+      "messages": [],
       "question_id": "q_medium_032"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_033"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_034"
     },
     {
       "messages": [],
