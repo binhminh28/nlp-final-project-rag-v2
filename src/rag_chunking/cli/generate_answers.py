@@ -29,11 +29,32 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--top-p", type=float)
     parser.add_argument("--max-output-tokens", type=int, default=512)
+    parser.add_argument(
+        "--generation-config-version", choices=("v1", "v2"), default="v1",
+        help="v1 preserves legacy acceptance; v2 requires normal completion",
+    )
+    parser.add_argument(
+        "--reasoning-effort", choices=("minimal", "low", "medium", "high"),
+        help="Explicit OpenRouter reasoning.effort (v2 only)",
+    )
+    parser.add_argument("--stop", action="append", default=[], dest="stop_sequences")
+    parser.add_argument(
+        "--prepared-context-token-budget", type=int,
+        help="Authoritative upstream ContextResult budget reference (v2 defaults to 4096)",
+    )
     parser.add_argument("--context-window-tokens", type=int, default=8192)
     parser.add_argument("--seed", type=int)
     parser.add_argument("--timeout-seconds", type=float, default=60.0)
     parser.add_argument("--max-retries", type=int, default=3)
     parser.add_argument("--retry-backoff-seconds", type=float, default=0.5)
+    parser.add_argument(
+        "--diagnostics-output", type=Path,
+        help="Non-canonical safe per-attempt diagnostic JSONL",
+    )
+    parser.add_argument(
+        "--raw-diagnostics-output", type=Path,
+        help="Non-canonical raw provider response directory; never contains request prompts",
+    )
     return parser
 
 
@@ -63,11 +84,28 @@ def main(argv: list[str] | None = None) -> int:
             timeout_seconds=args.timeout_seconds, max_retries=args.max_retries,
             retry_backoff_seconds=args.retry_backoff_seconds,
             context_window_tokens=args.context_window_tokens,
+            schema_version=f"generation_config_{args.generation_config_version}",
+            reasoning_effort=args.reasoning_effort,
+            completion_integrity_policy=(
+                "require_stop" if args.generation_config_version == "v2" else "allow_length"
+            ),
+            stop_sequences=tuple(args.stop_sequences),
+            response_handling_contract=(
+                "nonempty_text_require_stop_v2"
+                if args.generation_config_version == "v2" else "nonempty_text_v1"
+            ),
+            prepared_context_token_budget=(
+                args.prepared_context_token_budget or 4096
+                if args.generation_config_version == "v2" else None
+            ),
         )
         inputs = _load_inputs(args.input, config)
         if args.provider == "openrouter":
             load_project_dotenv()
-            provider = OpenRouterGenerationProvider()
+            provider = OpenRouterGenerationProvider(
+                diagnostics_output=args.diagnostics_output,
+                raw_diagnostics_output=args.raw_diagnostics_output,
+            )
         else:
             provider = DeterministicFakeGenerationProvider()
         service = GenerationService(config, provider, cache=GenerationCache(args.cache))

@@ -10,7 +10,8 @@ from rag_chunking.context.models import ContextResult
 from rag_chunking.embedding.models import canonical_fingerprint
 
 
-GENERATION_CONFIG_SCHEMA_VERSION = "generation_config_v1"
+GENERATION_CONFIG_V1_SCHEMA_VERSION = "generation_config_v1"
+GENERATION_CONFIG_SCHEMA_VERSION = "generation_config_v2"
 GENERATION_INPUT_SCHEMA_VERSION = "generation_input_v1"
 ANSWER_RESULT_SCHEMA_VERSION = "answer_result_v1"
 ANSWER_PROMPT_VERSION = "answer_prompt_v1"
@@ -50,12 +51,21 @@ class GenerationConfig:
     prompt_template_version: str = ANSWER_PROMPT_VERSION
     system_prompt_version: str = ANSWER_SYSTEM_PROMPT_VERSION
     system_prompt: str = ANSWER_SYSTEM_PROMPT
-    schema_version: str = GENERATION_CONFIG_SCHEMA_VERSION
+    schema_version: str = GENERATION_CONFIG_V1_SCHEMA_VERSION
+    reasoning_effort: str | None = None
+    completion_integrity_policy: str = "allow_length"
+    request_token_limit_parameter: str = "max_tokens"
+    provider_routing: str = "openrouter_default"
+    stop_sequences: tuple[str, ...] = ()
+    response_handling_contract: str = "nonempty_text_v1"
+    prepared_context_token_budget: int | None = None
 
     def __post_init__(self) -> None:
         for name in ("provider", "model", "system_prompt"):
             _nonempty(getattr(self, name), name)
-        if self.schema_version != GENERATION_CONFIG_SCHEMA_VERSION:
+        if self.schema_version not in {
+            GENERATION_CONFIG_V1_SCHEMA_VERSION, GENERATION_CONFIG_SCHEMA_VERSION,
+        }:
             raise ValueError(f"unsupported generation config schema {self.schema_version!r}")
         _nonempty(self.prompt_template_version, "prompt_template_version")
         _nonempty(self.system_prompt_version, "system_prompt_version")
@@ -84,9 +94,62 @@ class GenerationConfig:
             raise ValueError("max_retries must be a non-negative integer")
         if type(self.retry_backoff_seconds) not in (int, float) or not math.isfinite(self.retry_backoff_seconds) or self.retry_backoff_seconds < 0:
             raise ValueError("retry_backoff_seconds must be finite and non-negative")
+        # JSON distinguishes 0 from 0.0 even though generation semantics do not.
+        object.__setattr__(self, "temperature", float(self.temperature))
+        object.__setattr__(self, "timeout_seconds", float(self.timeout_seconds))
+        object.__setattr__(self, "retry_backoff_seconds", float(self.retry_backoff_seconds))
+        if self.top_p is not None:
+            object.__setattr__(self, "top_p", float(self.top_p))
+        if self.reasoning_effort not in {None, "minimal", "low", "medium", "high"}:
+            raise ValueError("reasoning_effort must be null, minimal, low, medium, or high")
+        if self.completion_integrity_policy not in {"allow_length", "require_stop"}:
+            raise ValueError("unsupported completion_integrity_policy")
+        if self.request_token_limit_parameter != "max_tokens":
+            raise ValueError("only the OpenRouter max_tokens request contract is supported")
+        if self.provider_routing != "openrouter_default":
+            raise ValueError("only default OpenRouter routing is supported")
+        if isinstance(self.stop_sequences, list):
+            object.__setattr__(self, "stop_sequences", tuple(self.stop_sequences))
+        if (
+            not isinstance(self.stop_sequences, tuple)
+            or any(not isinstance(item, str) or not item for item in self.stop_sequences)
+        ):
+            raise ValueError("stop_sequences must contain only non-empty strings")
+        if self.response_handling_contract not in {"nonempty_text_v1", "nonempty_text_require_stop_v2"}:
+            raise ValueError("unsupported response_handling_contract")
+        if self.prepared_context_token_budget is not None and (
+            type(self.prepared_context_token_budget) is not int
+            or self.prepared_context_token_budget <= 0
+        ):
+            raise ValueError("prepared_context_token_budget must be null or a positive integer")
+        if self.schema_version == GENERATION_CONFIG_V1_SCHEMA_VERSION and any((
+            self.reasoning_effort is not None,
+            self.completion_integrity_policy != "allow_length",
+            self.request_token_limit_parameter != "max_tokens",
+            self.provider_routing != "openrouter_default",
+            bool(self.stop_sequences),
+            self.response_handling_contract != "nonempty_text_v1",
+            self.prepared_context_token_budget is not None,
+        )):
+            raise ValueError("generation_config_v1 cannot use v2 generation semantics")
+        if self.schema_version == GENERATION_CONFIG_SCHEMA_VERSION and (
+            self.completion_integrity_policy != "require_stop"
+            or self.response_handling_contract != "nonempty_text_require_stop_v2"
+            or self.prepared_context_token_budget is None
+        ):
+            raise ValueError("generation_config_v2 requires explicit normal-completion integrity")
 
     def identity(self) -> dict[str, Any]:
-        return asdict(self)
+        value = asdict(self)
+        value["stop_sequences"] = list(self.stop_sequences)
+        if self.schema_version == GENERATION_CONFIG_V1_SCHEMA_VERSION:
+            for name in (
+                "reasoning_effort", "completion_integrity_policy",
+                "request_token_limit_parameter", "provider_routing", "stop_sequences",
+                "response_handling_contract", "prepared_context_token_budget",
+            ):
+                value.pop(name)
+        return value
 
     @property
     def fingerprint(self) -> str:
@@ -262,6 +325,23 @@ class GenerationInputOverflowError(ValueError):
             f"input={self.input_tokens} + output_allowance={self.max_output_tokens} > "
             f"window={self.context_window_tokens}; context={self.context_tokens}, "
             f"prompt_overhead={self.prompt_overhead_tokens}"
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class GenerationIntegrityError(ValueError):
+    """A structurally valid response that did not complete normally."""
+
+    query_id: str
+    finish_reason: str | None
+    output_tokens: int | None
+    visible_content_length: int
+
+    def __str__(self) -> str:
+        return (
+            f"generation did not complete normally for {self.query_id}: "
+            f"finish_reason={self.finish_reason!r}, output_tokens={self.output_tokens}, "
+            f"visible_content_length={self.visible_content_length}"
         )
 
 

@@ -8,6 +8,7 @@ from .models import (
     AnswerResult,
     GenerationConfig,
     GenerationInput,
+    GenerationIntegrityError,
     GenerationInputOverflowError,
     GenerationProviderError,
     InputTokenAccounting,
@@ -25,7 +26,8 @@ __all__ = [
     "ANSWER_PROMPT_VERSION", "ANSWER_SYSTEM_PROMPT", "AnswerPrompt", "AnswerPromptBuilder",
     "AnswerResult", "DeterministicFakeGenerationProvider", "GenerationCache",
     "GenerationCacheError", "GenerationConfig", "GenerationInput",
-    "GenerationInputOverflowError", "GenerationProvider", "GenerationProviderError",
+    "GenerationInputOverflowError", "GenerationIntegrityError", "GenerationProvider",
+    "GenerationProviderError",
     "GenerationRunResult", "GenerationService", "InputTokenAccounting",
     "OpenRouterGenerationProvider", "ProviderResponse", "run_generation",
 ]

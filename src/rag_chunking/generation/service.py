@@ -9,6 +9,7 @@ from .models import (
     AnswerResult,
     GenerationConfig,
     GenerationInput,
+    GenerationIntegrityError,
     GenerationInputOverflowError,
     answer_result_fingerprint,
 )
@@ -31,6 +32,14 @@ class GenerationService:
         self.cache_misses = 0
 
     def construct_prompt(self, generation_input: GenerationInput) -> AnswerPrompt:
+        expected_context_budget = self.config.prepared_context_token_budget
+        if (
+            expected_context_budget is not None
+            and generation_input.context.context_token_budget != expected_context_budget
+        ):
+            raise ValueError(
+                "prepared context token budget does not match generation configuration"
+            )
         prompt = self.prompt_builder.build(generation_input)
         accounting = prompt.input_tokens
         if accounting.total_input_tokens + self.config.max_output_tokens > self.config.context_window_tokens:
@@ -54,7 +63,17 @@ class GenerationService:
                 self.cache_hits += 1
                 return self._with_current_lineage(cached, generation_input)
             self.cache_misses += 1
+        set_context = getattr(self.provider, "set_diagnostic_context", None)
+        if callable(set_context):
+            set_context(generation_input.query_id, prompt.prompt_fingerprint)
         response = self.provider.complete(prompt.messages, self.config)
+        if self.config.completion_integrity_policy == "require_stop" and response.finish_reason != "stop":
+            raise GenerationIntegrityError(
+                query_id=generation_input.query_id,
+                finish_reason=response.finish_reason,
+                output_tokens=response.output_tokens,
+                visible_content_length=len(response.text),
+            )
         result = self._result(generation_input, prompt, response)
         if self.cache is not None:
             self.cache.put(result)

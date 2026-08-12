@@ -10,7 +10,10 @@ from typing import Any
 from rag_chunking.chunking.writer import serialize_json, write_artifact_set
 from rag_chunking.embedding.models import canonical_fingerprint
 
-from .models import AnswerResult, GenerationInput, GenerationInputOverflowError, GenerationProviderError
+from .models import (
+    AnswerResult, GenerationInput, GenerationInputOverflowError,
+    GenerationIntegrityError, GenerationProviderError,
+)
 from .service import GenerationService
 
 
@@ -127,7 +130,10 @@ def run_generation(
         for item in ordered:
             try:
                 answers.append(service.generate(item))
-            except (GenerationInputOverflowError, GenerationProviderError, ValueError) as error:
+            except (
+                GenerationInputOverflowError, GenerationIntegrityError,
+                GenerationProviderError, ValueError,
+            ) as error:
                 failure: dict[str, Any] = {
                     "query_id": item.query_id,
                     "context_fingerprint": item.context.context_fingerprint,
@@ -139,6 +145,12 @@ def run_generation(
                     failure.update({
                         "retryable": error.retryable, "attempts": error.attempts,
                         "status_code": error.status_code,
+                    })
+                if isinstance(error, GenerationIntegrityError):
+                    failure.update({
+                        "finish_reason": error.finish_reason,
+                        "output_tokens": error.output_tokens,
+                        "visible_content_length": error.visible_content_length,
                     })
                 failures.append(failure)
             _publish_partial(output_directory, answers, failures, stats())

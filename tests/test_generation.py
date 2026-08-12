@@ -22,10 +22,12 @@ from rag_chunking.generation import (
     GenerationCacheError,
     GenerationConfig,
     GenerationInput,
+    GenerationIntegrityError,
     GenerationInputOverflowError,
     GenerationProviderError,
     GenerationService,
     OpenRouterGenerationProvider,
+    ProviderResponse,
     run_generation,
 )
 from rag_chunking.generation.cache import generation_cache_key
@@ -61,6 +63,18 @@ def context(
 
 def config(**changes):
     return GenerationConfig(provider="fake", model="fake-v1", **changes)
+
+
+def v2_config(**changes):
+    values = {
+        "provider": "fake", "model": "fake-v1",
+        "schema_version": "generation_config_v2",
+        "completion_integrity_policy": "require_stop",
+        "response_handling_contract": "nonempty_text_require_stop_v2",
+        "prepared_context_token_budget": 4096,
+    }
+    values.update(changes)
+    return GenerationConfig(**values)
 
 
 def generation_input(cfg=None, *, question="  Exact question?\n", result=None, query_id="q-1"):
@@ -474,3 +488,141 @@ def test_offline_retrieval_protocol_context_generation_all_strategies(tmp_path: 
         ))
         assert repeated.answer_text == answer.answer_text
     assert generation.provider.calls == calls
+
+
+def test_v1_fingerprint_is_preserved_and_numeric_semantics_are_normalized():
+    integer = GenerationConfig(
+        provider="openrouter", model="openai/gpt-5-mini", temperature=0,
+        max_output_tokens=512,
+    )
+    floating = replace(integer, temperature=0.0)
+    assert integer.fingerprint == floating.fingerprint
+    assert integer.fingerprint == "1045c3382003284e5fc02ebe1b86834d45423dc08313e773c4409acf4bad6cb6"
+
+
+def test_v2_semantics_change_fingerprint_and_separate_cache(tmp_path: Path):
+    v1 = config(max_output_tokens=1024)
+    v2 = v2_config(max_output_tokens=1024, reasoning_effort="low")
+    assert v1.fingerprint != v2.fingerprint
+    cache = GenerationCache(tmp_path / "cache")
+    provider = DeterministicFakeGenerationProvider()
+    GenerationService(v1, provider, cache=cache).generate(generation_input(v1))
+    GenerationService(v2, provider, cache=cache).generate(generation_input(v2))
+    GenerationService(v2, provider, cache=cache).generate(generation_input(v2))
+    assert provider.calls == 2
+
+
+def test_v2_rejects_length_and_does_not_cache(tmp_path: Path):
+    class LengthProvider:
+        calls = 0
+        retries = 0
+
+        def complete(self, messages, cfg):
+            self.calls += 1
+            return ProviderResponse("partial answer", output_tokens=1024, finish_reason="length")
+
+    cfg = v2_config(max_output_tokens=1024)
+    provider = LengthProvider()
+    cache = GenerationCache(tmp_path / "cache")
+    with pytest.raises(GenerationIntegrityError, match="did not complete normally"):
+        GenerationService(cfg, provider, cache=cache).generate(generation_input(cfg))
+    assert provider.calls == 1
+    assert not (tmp_path / "cache").exists()
+
+
+def test_v2_rejects_mismatched_prepared_context_budget():
+    cfg = v2_config(prepared_context_token_budget=2048)
+    with pytest.raises(ValueError, match="prepared context token budget"):
+        GenerationService(cfg, DeterministicFakeGenerationProvider()).generate(
+            generation_input(cfg)
+        )
+
+
+def test_openrouter_reasoning_payload_and_safe_diagnostics(tmp_path: Path, monkeypatch):
+    requests = []
+    envelope = {
+        "id": "request-fixture", "model": "openai/gpt-5-mini", "provider": "OpenAI",
+        "choices": [{
+            "finish_reason": "stop",
+            "message": {
+                "content": "complete answer", "reasoning": "fixture reasoning",
+                "reasoning_details": [{"type": "reasoning.text", "text": "fixture"}],
+            },
+        }],
+        "usage": {
+            "prompt_tokens": 50, "completion_tokens": 30,
+            "completion_tokens_details": {"reasoning_tokens": 12},
+            "prompt_tokens_details": {"cached_tokens": 7},
+        },
+    }
+
+    def urlopen(request, timeout):
+        requests.append(request)
+        return Response(envelope)
+    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    cfg = GenerationConfig(
+        provider="openrouter", model="openai/gpt-5-mini", max_output_tokens=1024,
+        schema_version="generation_config_v2", reasoning_effort="low",
+        completion_integrity_policy="require_stop",
+        response_handling_contract="nonempty_text_require_stop_v2",
+        prepared_context_token_budget=4096,
+    )
+    diagnostic_path = tmp_path / "diagnostics.jsonl"
+    raw_path = tmp_path / "raw"
+    provider = OpenRouterGenerationProvider(
+        api_key="never-serialize-this-secret", diagnostics_output=diagnostic_path,
+        raw_diagnostics_output=raw_path,
+    )
+    result = GenerationService(cfg, provider).generate(generation_input(cfg))
+    payload = json.loads(requests[0].data)
+    assert payload["max_tokens"] == 1024
+    assert payload["reasoning"] == {"effort": "low"}
+    assert "max_completion_tokens" not in payload and "max_output_tokens" not in payload
+    assert result.finish_reason == "stop"
+    diagnostic = json.loads(diagnostic_path.read_text().strip())
+    assert diagnostic["query_id"] == "q-1"
+    assert diagnostic["reasoning_present"] is True
+    assert diagnostic["reasoning_details_present"] is True
+    assert diagnostic["reasoning_tokens"] == 12
+    assert diagnostic["cached_tokens"] == 7
+    generated = diagnostic_path.read_text() + next(raw_path.iterdir()).read_text()
+    assert "never-serialize-this-secret" not in generated
+    assert "Question:" not in generated
+
+
+@pytest.mark.parametrize("content,content_type,is_null,is_empty", [
+    (None, "null", True, False),
+    ("", "string", False, True),
+    ([{"type": "text", "text": "answer"}], "list", False, False),
+])
+def test_openrouter_diagnoses_invalid_content_shapes(
+    tmp_path: Path, monkeypatch, content, content_type, is_null, is_empty,
+):
+    monkeypatch.setattr(
+        "urllib.request.urlopen",
+        lambda request, timeout: Response({
+            "choices": [{"finish_reason": "length", "message": {"content": content}}],
+            "usage": {"completion_tokens": 512},
+        }),
+    )
+    cfg = GenerationConfig(
+        provider="openrouter", model="model", max_retries=0, retry_backoff_seconds=0,
+    )
+    provider = OpenRouterGenerationProvider(
+        api_key="secret", diagnostics_output=tmp_path / "diagnostics.jsonl",
+    )
+    with pytest.raises(GenerationProviderError, match="empty or non-text"):
+        GenerationService(cfg, provider).generate(generation_input(cfg))
+    diagnostic = provider.diagnostics[0]
+    assert diagnostic["message_content_type"] == content_type
+    assert diagnostic["content_is_null"] is is_null
+    assert diagnostic["content_is_empty_string"] is is_empty
+    assert diagnostic["finish_reason"] == "length"
+
+
+def test_canonical_gpt5mini_v2_config_has_expected_fingerprint():
+    path = Path(__file__).parents[1] / "configs" / "generation_gpt5mini_v2.json"
+    cfg = GenerationConfig(**json.loads(path.read_text(encoding="utf-8")))
+    assert cfg.fingerprint == "c4f4768ec9b80361dfd0a1e252f74ff348aa4e4c953bcca02761ba345f38b301"
+    assert cfg.reasoning_effort == "low"
+    assert cfg.completion_integrity_policy == "require_stop"
