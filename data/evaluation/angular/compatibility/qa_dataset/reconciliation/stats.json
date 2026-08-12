@@ -1,0 +1,537 @@
+{
+  "authored_section_failure_counts": {
+    "Advanced fetch options > Keep-alive connections": 1,
+    "Advanced fetch options > Request priority for Core Web Vitals": 1,
+    "Lazy loading": 4,
+    "Providing injectors to template fragments > Inheriting the outlet's injector": 1,
+    "Server-side rendering": 1,
+    "Updating to the latest version > Safety of updating without reloading": 1,
+    "Use a custom ID": 4,
+    "Using NgTemplateOutlet": 1
+  },
+  "breakdown": {
+    "difficulty": {
+      "easy": {
+        "evidence_items": 11,
+        "questions": 11
+      },
+      "hard": {
+        "evidence_items": 26,
+        "questions": 23
+      },
+      "medium": {
+        "evidence_items": 18,
+        "questions": 12
+      }
+    },
+    "evidence_scope": {
+      "cross_document": {
+        "evidence_items": 9,
+        "questions": 8
+      },
+      "cross_section": {
+        "evidence_items": 17,
+        "questions": 15
+      },
+      "single_section": {
+        "evidence_items": 29,
+        "questions": 23
+      }
+    },
+    "question_type": {
+      "behavior": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "cause_effect": {
+        "evidence_items": 2,
+        "questions": 2
+      },
+      "comparison": {
+        "evidence_items": 15,
+        "questions": 12
+      },
+      "definition": {
+        "evidence_items": 2,
+        "questions": 2
+      },
+      "fact": {
+        "evidence_items": 3,
+        "questions": 3
+      },
+      "list": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "mechanism": {
+        "evidence_items": 4,
+        "questions": 4
+      },
+      "procedure": {
+        "evidence_items": 5,
+        "questions": 3
+      },
+      "security_mechanism": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "sequence": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "syntax": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "tradeoff": {
+        "evidence_items": 8,
+        "questions": 7
+      },
+      "why": {
+        "evidence_items": 11,
+        "questions": 8
+      }
+    },
+    "reasoning_type": {
+      "api_design_reasoning": {
+        "evidence_items": 2,
+        "questions": 1
+      },
+      "cause_effect": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "comparison": {
+        "evidence_items": 8,
+        "questions": 6
+      },
+      "context_reasoning": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "cross_api_comparison": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "cross_document_synthesis": {
+        "evidence_items": 8,
+        "questions": 7
+      },
+      "cross_section_synthesis": {
+        "evidence_items": 4,
+        "questions": 4
+      },
+      "multi_fact_synthesis": {
+        "evidence_items": 8,
+        "questions": 5
+      },
+      "multi_step_synthesis": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "ordered_synthesis": {
+        "evidence_items": 2,
+        "questions": 1
+      },
+      "ownership_reasoning": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "scope_reasoning": {
+        "evidence_items": 2,
+        "questions": 1
+      },
+      "single_fact": {
+        "evidence_items": 11,
+        "questions": 11
+      },
+      "state_propagation": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "state_transition": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "stateful_reasoning": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "structural_reasoning": {
+        "evidence_items": 1,
+        "questions": 1
+      },
+      "version_consistency": {
+        "evidence_items": 1,
+        "questions": 1
+      }
+    }
+  },
+  "classification_counts": {
+    "ambiguous_source_content": {
+      "evidence_items": 1,
+      "questions": 1
+    },
+    "dataset_evidence_not_source_exact": {
+      "evidence_items": 7,
+      "questions": 7
+    },
+    "dataset_evidence_paraphrase": {
+      "evidence_items": 30,
+      "questions": 24
+    },
+    "dataset_from_different_corpus_version": {
+      "evidence_items": 11,
+      "questions": 10
+    },
+    "dataset_section_path_error": {
+      "evidence_items": 6,
+      "questions": 5
+    }
+  },
+  "compatibility_failure_counts": {
+    "ambiguous_section_mapping": {
+      "evidence_items": 1,
+      "failure_rows": 1,
+      "questions": 1
+    },
+    "corpus_version_mismatch": {
+      "evidence_items": 36,
+      "failure_rows": 43,
+      "questions": 30
+    },
+    "evidence_text_normalization_issue": {
+      "evidence_items": 8,
+      "failure_rows": 8,
+      "questions": 8
+    },
+    "section_path_mismatch": {
+      "evidence_items": 13,
+      "failure_rows": 13,
+      "questions": 11
+    }
+  },
+  "corpus_revision": {
+    "available_identity": "per-document source_sha256 plus processed corpus fingerprint",
+    "dataset_source_revision": null,
+    "exact_upstream_revision": null
+  },
+  "cross_document_questions": [
+    {
+      "evidence_items": [
+        {
+          "compatibility_status": "resolved",
+          "doc_id": "angular:guide/incremental-hydration.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_004_e01"
+        },
+        {
+          "compatibility_status": "resolved",
+          "doc_id": "angular:guide/hydration.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_004_e02"
+        },
+        {
+          "compatibility_status": "failed",
+          "doc_id": "angular:guide/hydration.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_004_e03"
+        }
+      ],
+      "failed_evidence_ids": [
+        "q_hard_004_e03"
+      ],
+      "failing_evidence_items": 1,
+      "one_failure_invalidates_question": true,
+      "question_id": "q_hard_004",
+      "recommended_action": "Compare the authored statement with the lexical source candidate and verify semantics manually.",
+      "required_documents": 2,
+      "required_evidence_items": 3,
+      "resolved_documents": 2
+    },
+    {
+      "evidence_items": [
+        {
+          "compatibility_status": "resolved",
+          "doc_id": "angular:guide/templates/ng-content.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_019_e01"
+        },
+        {
+          "compatibility_status": "failed",
+          "doc_id": "angular:guide/templates/ng-template.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_019_e02"
+        },
+        {
+          "compatibility_status": "resolved",
+          "doc_id": "angular:guide/templates/ng-container.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_019_e03"
+        }
+      ],
+      "failed_evidence_ids": [
+        "q_hard_019_e02"
+      ],
+      "failing_evidence_items": 1,
+      "one_failure_invalidates_question": true,
+      "question_id": "q_hard_019",
+      "recommended_action": "Compare the authored statement with the lexical source candidate and verify semantics manually.",
+      "required_documents": 3,
+      "required_evidence_items": 3,
+      "resolved_documents": 3
+    },
+    {
+      "evidence_items": [
+        {
+          "compatibility_status": "failed",
+          "doc_id": "angular:guide/testing/component-harnesses-overview.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_024_e01"
+        },
+        {
+          "compatibility_status": "resolved",
+          "doc_id": "angular:guide/testing/creating-component-harnesses.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_024_e02"
+        }
+      ],
+      "failed_evidence_ids": [
+        "q_hard_024_e01"
+      ],
+      "failing_evidence_items": 1,
+      "one_failure_invalidates_question": true,
+      "question_id": "q_hard_024",
+      "recommended_action": "Compare the authored statement with the lexical source candidate and verify semantics manually.",
+      "required_documents": 2,
+      "required_evidence_items": 2,
+      "resolved_documents": 2
+    },
+    {
+      "evidence_items": [
+        {
+          "compatibility_status": "failed",
+          "doc_id": "angular:guide/routing/testing.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_029_e01"
+        },
+        {
+          "compatibility_status": "failed",
+          "doc_id": "angular:guide/routing/define-routes.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_029_e02"
+        }
+      ],
+      "failed_evidence_ids": [
+        "q_hard_029_e01",
+        "q_hard_029_e02"
+      ],
+      "failing_evidence_items": 2,
+      "one_failure_invalidates_question": true,
+      "question_id": "q_hard_029",
+      "recommended_action": "Compare the authored statement with the lexical source candidate and verify semantics manually.",
+      "required_documents": 2,
+      "required_evidence_items": 2,
+      "resolved_documents": 2
+    },
+    {
+      "evidence_items": [
+        {
+          "compatibility_status": "failed",
+          "doc_id": "angular:guide/forms/signals/validation.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_031_e01"
+        },
+        {
+          "compatibility_status": "resolved",
+          "doc_id": "angular:guide/forms/form-validation.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_031_e02"
+        }
+      ],
+      "failed_evidence_ids": [
+        "q_hard_031_e01"
+      ],
+      "failing_evidence_items": 1,
+      "one_failure_invalidates_question": true,
+      "question_id": "q_hard_031",
+      "recommended_action": "Compare the authored statement with the lexical source candidate and verify semantics manually.",
+      "required_documents": 2,
+      "required_evidence_items": 2,
+      "resolved_documents": 2
+    },
+    {
+      "evidence_items": [
+        {
+          "compatibility_status": "failed",
+          "doc_id": "angular:guide/testing/component-harnesses-overview.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_036_e01"
+        },
+        {
+          "compatibility_status": "resolved",
+          "doc_id": "angular:guide/testing/using-component-harnesses.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_036_e02"
+        }
+      ],
+      "failed_evidence_ids": [
+        "q_hard_036_e01"
+      ],
+      "failing_evidence_items": 1,
+      "one_failure_invalidates_question": true,
+      "question_id": "q_hard_036",
+      "recommended_action": "Compare the authored statement with the lexical source candidate and verify semantics manually.",
+      "required_documents": 2,
+      "required_evidence_items": 2,
+      "resolved_documents": 2
+    },
+    {
+      "evidence_items": [
+        {
+          "compatibility_status": "resolved",
+          "doc_id": "angular:ecosystem/service-workers/communications.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_039_e01"
+        },
+        {
+          "compatibility_status": "failed",
+          "doc_id": "angular:ecosystem/service-workers/communications.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_039_e02"
+        },
+        {
+          "compatibility_status": "resolved",
+          "doc_id": "angular:ecosystem/service-workers/overview.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_039_e03"
+        }
+      ],
+      "failed_evidence_ids": [
+        "q_hard_039_e02"
+      ],
+      "failing_evidence_items": 1,
+      "one_failure_invalidates_question": true,
+      "question_id": "q_hard_039",
+      "recommended_action": "Review the ranked renamed/relocated canonical section path.",
+      "required_documents": 2,
+      "required_evidence_items": 3,
+      "resolved_documents": 2
+    },
+    {
+      "evidence_items": [
+        {
+          "compatibility_status": "failed",
+          "doc_id": "angular:guide/i18n/manage-marked-text.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_040_e01"
+        },
+        {
+          "compatibility_status": "resolved",
+          "doc_id": "angular:guide/i18n/merge.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_040_e02"
+        },
+        {
+          "compatibility_status": "resolved",
+          "doc_id": "angular:guide/i18n/merge.md",
+          "document_resolved": true,
+          "evidence_id": "q_hard_040_e03"
+        }
+      ],
+      "failed_evidence_ids": [
+        "q_hard_040_e01"
+      ],
+      "failing_evidence_items": 1,
+      "one_failure_invalidates_question": true,
+      "question_id": "q_hard_040",
+      "recommended_action": "Review the ranked renamed/relocated canonical section path.",
+      "required_documents": 2,
+      "required_evidence_items": 3,
+      "resolved_documents": 2
+    }
+  ],
+  "current_compatible_questions": 94,
+  "document_failure_counts": {
+    "angular:ecosystem/service-workers/communications.md": 1,
+    "angular:guide/components/content-projection.md": 1,
+    "angular:guide/directives/structural-directives.md": 1,
+    "angular:guide/forms/form-validation.md": 1,
+    "angular:guide/forms/signals/comparison.md": 2,
+    "angular:guide/forms/signals/validation.md": 3,
+    "angular:guide/forms/typed-forms.md": 3,
+    "angular:guide/http/interceptors.md": 1,
+    "angular:guide/http/making-requests.md": 2,
+    "angular:guide/hydration.md": 3,
+    "angular:guide/i18n/manage-marked-text.md": 4,
+    "angular:guide/i18n/overview.md": 1,
+    "angular:guide/i18n/prepare.md": 3,
+    "angular:guide/i18n/translation-files.md": 1,
+    "angular:guide/routing/define-routes.md": 3,
+    "angular:guide/routing/loading-strategies.md": 4,
+    "angular:guide/routing/rendering-strategies.md": 1,
+    "angular:guide/routing/router-reference.md": 1,
+    "angular:guide/routing/testing.md": 1,
+    "angular:guide/security.md": 1,
+    "angular:guide/signals/linked-signal.md": 1,
+    "angular:guide/signals/resource.md": 2,
+    "angular:guide/ssr.md": 2,
+    "angular:guide/templates/ng-template.md": 3,
+    "angular:guide/testing/code-coverage.md": 1,
+    "angular:guide/testing/component-harnesses-overview.md": 3,
+    "angular:guide/testing/creating-component-harnesses.md": 2,
+    "angular:guide/testing/using-component-harnesses.md": 2,
+    "angular:introduction/essentials/templates.md": 1
+  },
+  "evidence_items_affected": 55,
+  "evidence_sentences_affected": 51,
+  "failure_rows": 65,
+  "no_safe_correction_cases": 9,
+  "projected_compatible_questions": 110,
+  "projected_newly_compatible_question_ids": [
+    "q_easy_011",
+    "q_easy_019",
+    "q_easy_023",
+    "q_easy_050",
+    "q_easy_051",
+    "q_easy_053",
+    "q_hard_024",
+    "q_hard_031",
+    "q_hard_035",
+    "q_hard_036",
+    "q_hard_040",
+    "q_medium_006",
+    "q_medium_014",
+    "q_medium_022",
+    "q_medium_033",
+    "q_medium_034"
+  ],
+  "projected_remaining_questions": 30,
+  "projection_label": "PROJECTED — NOT ACTUAL GATE RESULT",
+  "proposal_counts": {
+    "high": 25,
+    "medium": 28
+  },
+  "question_semantics_review_required": 22,
+  "questions_reviewed": 46,
+  "reference_answer_support_counts": {
+    "support_likely_unchanged": 29,
+    "support_unclear": 26
+  },
+  "resolved_pipeline_findings": 1,
+  "resolver_bug_found": true,
+  "resolver_fix": {
+    "compatibility_effect": "two additional questions became compatible; one mixed-failure question lost its section ambiguity",
+    "fix": "exact full paths now take precedence over suffix matching",
+    "issue": "exact full section path was combined with suffix candidates"
+  },
+  "review_priority_counts": {
+    "P1": 11,
+    "P2": 8,
+    "P3": 35,
+    "P4": 1
+  },
+  "schema_version": "dataset_corpus_reconciliation_v1",
+  "total_questions": 140,
+  "unmapped_evidence_items": 43
+}

@@ -22,6 +22,26 @@ is committed manifest-last under `data/evaluation/angular/compatibility/qa_datas
 `prepare-answer-inputs`, evidence retrieval, and `benchmark-preflight` apply the
 same gate and exit non-zero when it fails.
 
+Current readiness is explicit:
+
+```text
+PASS    real QA dataset is available
+PASS    dataset schema validation (140 / 140 records)
+FAIL    dataset/corpus/evidence-to-chunk compatibility (94 / 140 questions)
+BLOCKED benchmark execution
+```
+
+The human-review package is generated separately and never edits gold data:
+
+```bash
+reconcile-qa-dataset \
+  --dataset data/evaluation/angular/qa_dataset.jsonl \
+  --compatibility data/evaluation/angular/compatibility/qa_dataset
+```
+
+Review `reconciliation/proposed_corrections.jsonl` and
+`reconciliation/RECONCILIATION_REPORT.md`. Every proposal has `auto_apply: false`.
+
 ## Authoritative QA contract
 
 The real external schema is adapted as `team_evidence_qa_adapter_v1`. JSONL row
@@ -134,7 +154,7 @@ PASS    fixed_size chunks / embeddings / index
 PASS    structure_aware chunks / embeddings / index
 PASS    prompt_based chunks / embeddings / index
 PASS    protocol / context / fake-generation / evaluation configs
-BLOCKED canonical production QA dataset not yet available
+BLOCKED real QA dataset compatibility gate failed
 ```
 
 This is code/artifact readiness, not an executed production experiment.

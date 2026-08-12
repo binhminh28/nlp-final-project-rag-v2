@@ -5,7 +5,7 @@
     "prompt_based": "a2172064f7bd0a8567ab4a7517f4224193f8257bb41c5f64db58eadf50054b83",
     "structure_aware": "896b0c0d568d0431b54459fb6657d0de72f679d5d269adf68dffb05a4528d355"
   },
-  "compatibility_fingerprint": "fc8c04cbd40bb33ffdd5b6141cfc1990c5307c3d0f951a24d630919116fd5019",
+  "compatibility_fingerprint": "94356d57051beea4279b573163d15717260be29af7337816187f844e197741c1",
   "complete": true,
   "corpus_fingerprint": "44ec8ae894520ecad7fd5ea177dedc785949ff9a6ce8ac0b69ce26f133563dad",
   "dataset_fingerprint": "cea4e11d87a353b084b73f95b231bf7c41a1a2c651312295ffe5bcb2a0bd03b6",
@@ -21,6 +21,6 @@
     "structure_aware",
     "prompt_based"
   ],
-  "unresolved_case_count": 68,
-  "unresolved_cases_fingerprint": "36afa6980944180422f070211f39b8fefe3d26574d6ce0754bdc9a83d7b2913d"
+  "unresolved_case_count": 65,
+  "unresolved_cases_fingerprint": "e8831efc9035c61d1d676c6b5868ab7c6fce4cb9ea14438f9b650413c7571890"
 }

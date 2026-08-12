@@ -172,11 +172,17 @@ Run the offline gate explicitly:
 audit-dataset-compatibility \
   --dataset data/evaluation/angular/qa_dataset.jsonl \
   --output data/evaluation/angular/compatibility/qa_dataset
+
+reconcile-qa-dataset \
+  --dataset data/evaluation/angular/qa_dataset.jsonl \
+  --compatibility data/evaluation/angular/compatibility/qa_dataset
 ```
 
 Document IDs first require exact canonical identity (the real IDs already match `angular:<relative_path>`). A missing namespace may only be added through the unique, explicit `source + relative_path` transformation; filename-only and fuzzy matches are forbidden. Sections use exact path/suffix matching, then NFKC/case/whitespace plus Markdown heading-delimiter normalization. Evidence uses exact block text, then deterministic NFKC/case/whitespace and rendered-Markdown normalization with exact source offsets. Chunk relevance comes only from those offsets and committed unified-chunk provenance.
 
 The strict gate passes only when every schema field, document, section, evidence sentence, and evidence item resolves uniquely and maps completely for every selected strategy, with valid corpus/chunk lineage. Failures are never dropped. Machine-readable reports and the detailed unresolved list are under `data/evaluation/angular/compatibility/qa_dataset/`.
+
+Reconciliation consumes that fingerprinted unresolved queue and writes lexical candidates and human-review proposals under `compatibility/qa_dataset/reconciliation/`. It never edits the immutable QA file, uses retrieval results, or changes gate truth.
 
 The legacy loader contract accepts:
 
@@ -237,6 +243,7 @@ chunk-prompt --input data/processed/angular/documents.jsonl --output data/chunks
 evaluate-retrieval --corpus angular --dataset data/evaluation/angular/baseline_v1.jsonl --plan-only
 validate-qa-dataset --dataset data/evaluation/angular/qa_dataset.jsonl --documents data/processed/angular/documents.jsonl
 audit-dataset-compatibility --dataset data/evaluation/angular/qa_dataset.jsonl
+reconcile-qa-dataset --dataset data/evaluation/angular/qa_dataset.jsonl
 benchmark-preflight
 prepare-answer-inputs --dataset data/evaluation/angular/qa_dataset.jsonl --output <inputs-dir>
 generate-answers --input <inputs.jsonl> --output <generation-dir> --cache <cache-dir>

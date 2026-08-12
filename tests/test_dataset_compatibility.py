@@ -141,12 +141,28 @@ def test_section_resolution_exact_normalized_missing_and_duplicate():
             DocumentBlock(type="paragraph", text="fact"),
         ],
     )
-    assert resolve_section(doc, ["Root", "Nested `API` {#api}"]).method == "exact_path_or_suffix"
-    assert resolve_section(doc, ["Nested API"]).method == "normalized_heading_path"
+    assert resolve_section(doc, ["Root", "Nested `API` {#api}"]).method == "exact_path"
+    assert resolve_section(doc, ["Nested API"]).method == "normalized_heading_suffix"
     assert resolve_section(doc, ["Missing"]).status == "unresolved"
     duplicate = document(heading="Same")
     duplicate.blocks.extend([DocumentBlock(type="heading", text="Same", level=1)])
     assert resolve_section(duplicate, ["Same"]).status == "ambiguous"
+
+
+def test_exact_full_section_path_wins_over_same_named_descendant():
+    doc = NormalizedDocument(
+        doc_id="angular:a.md", source="angular", relative_path="a.md", filename="a.md",
+        source_sha256="fixture", blocks=[
+            DocumentBlock(type="heading", text="Interceptors", level=1),
+            DocumentBlock(type="paragraph", text="Root evidence."),
+            DocumentBlock(type="heading", text="Interceptors", level=2),
+            DocumentBlock(type="paragraph", text="Nested evidence."),
+        ],
+    )
+    resolved = resolve_section(doc, ["Interceptors"])
+    assert resolved.status == "resolved"
+    assert resolved.method == "exact_path"
+    assert resolved.block_start == 0
 
 
 def test_sentence_resolution_exact_normalized_missing_and_section_disambiguation():

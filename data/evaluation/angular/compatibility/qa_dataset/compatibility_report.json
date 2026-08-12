@@ -7,11 +7,11 @@
         "total": 60
       },
       "hard": {
-        "compatible": 16,
+        "compatible": 17,
         "total": 40
       },
       "medium": {
-        "compatible": 27,
+        "compatible": 28,
         "total": 40
       }
     },
@@ -21,7 +21,7 @@
         "total": 12
       },
       "cross_section": {
-        "compatible": 12,
+        "compatible": 14,
         "total": 29
       },
       "single_section": {
@@ -31,7 +31,7 @@
     },
     "question_type": {
       "behavior": {
-        "compatible": 20,
+        "compatible": 21,
         "total": 22
       },
       "cause_effect": {
@@ -83,7 +83,7 @@
         "total": 10
       },
       "why": {
-        "compatible": 6,
+        "compatible": 7,
         "total": 15
       }
     },
@@ -121,7 +121,7 @@
         "total": 11
       },
       "cross_section_synthesis": {
-        "compatible": 1,
+        "compatible": 2,
         "total": 6
       },
       "decision_reasoning": {
@@ -137,7 +137,7 @@
         "total": 1
       },
       "multi_fact_synthesis": {
-        "compatible": 17,
+        "compatible": 18,
         "total": 23
       },
       "multi_step_synthesis": {
@@ -202,28 +202,28 @@
   "chunk_mapping": {
     "fixed_size": {
       "artifact_errors": [],
-      "compatible_questions": 92,
+      "compatible_questions": 94,
       "mapped_evidence": 190,
       "total_evidence": 233,
       "unmapped_evidence": 43
     },
     "prompt_based": {
       "artifact_errors": [],
-      "compatible_questions": 92,
+      "compatible_questions": 94,
       "mapped_evidence": 190,
       "total_evidence": 233,
       "unmapped_evidence": 43
     },
     "structure_aware": {
       "artifact_errors": [],
-      "compatible_questions": 92,
+      "compatible_questions": 94,
       "mapped_evidence": 190,
       "total_evidence": 233,
       "unmapped_evidence": 43
     }
   },
-  "compatibility_fingerprint": "fc8c04cbd40bb33ffdd5b6141cfc1990c5307c3d0f951a24d630919116fd5019",
-  "compatible_question_count": 92,
+  "compatibility_fingerprint": "94356d57051beea4279b573163d15717260be29af7337816187f844e197741c1",
+  "compatible_question_count": 94,
   "corpus_fingerprint": "44ec8ae894520ecad7fd5ea177dedc785949ff9a6ce8ac0b69ce26f133563dad",
   "corpus_integrity_errors": [],
   "dataset_audit": {
@@ -339,7 +339,7 @@
     "unresolved": 51
   },
   "failure_root_cause_counts": {
-    "ambiguous_section_mapping": 4,
+    "ambiguous_section_mapping": 1,
     "corpus_version_mismatch": 43,
     "evidence_text_normalization_issue": 8,
     "section_path_mismatch": 13
@@ -351,7 +351,7 @@
     "one or more evidence sentences do not resolve uniquely",
     "one or more evidence items do not map to every chunk strategy"
   ],
-  "incompatible_question_count": 48,
+  "incompatible_question_count": 46,
   "incompatible_question_ids": [
     "q_easy_005",
     "q_easy_011",
@@ -381,7 +381,6 @@
     "q_hard_029",
     "q_hard_031",
     "q_hard_032",
-    "q_hard_033",
     "q_hard_035",
     "q_hard_036",
     "q_hard_037",
@@ -395,7 +394,6 @@
     "q_medium_014",
     "q_medium_018",
     "q_medium_020",
-    "q_medium_021",
     "q_medium_022",
     "q_medium_026",
     "q_medium_032",
@@ -442,16 +440,16 @@
     "q_easy_035": "compatible_with_warning",
     "q_easy_036": "compatible_with_warning",
     "q_easy_037": "compatible_with_warning",
-    "q_easy_038": "compatible_with_warning",
+    "q_easy_038": "compatible",
     "q_easy_039": "compatible_with_warning",
     "q_easy_040": "compatible",
-    "q_easy_041": "compatible_with_warning",
-    "q_easy_042": "compatible_with_warning",
+    "q_easy_041": "compatible",
+    "q_easy_042": "compatible",
     "q_easy_043": "compatible_with_warning",
     "q_easy_044": "compatible",
     "q_easy_045": "compatible",
-    "q_easy_046": "compatible_with_warning",
-    "q_easy_047": "compatible_with_warning",
+    "q_easy_046": "compatible",
+    "q_easy_047": "compatible",
     "q_easy_048": "compatible_with_warning",
     "q_easy_049": "compatible",
     "q_easy_050": "incompatible",
@@ -459,11 +457,11 @@
     "q_easy_052": "compatible_with_warning",
     "q_easy_053": "incompatible",
     "q_easy_054": "compatible_with_warning",
-    "q_easy_055": "compatible_with_warning",
+    "q_easy_055": "compatible",
     "q_easy_056": "compatible_with_warning",
-    "q_easy_057": "compatible_with_warning",
+    "q_easy_057": "compatible",
     "q_easy_058": "compatible",
-    "q_easy_059": "compatible_with_warning",
+    "q_easy_059": "compatible",
     "q_easy_060": "compatible_with_warning",
     "q_hard_001": "incompatible",
     "q_hard_002": "compatible_with_warning",
@@ -473,7 +471,7 @@
     "q_hard_006": "compatible_with_warning",
     "q_hard_007": "incompatible",
     "q_hard_008": "incompatible",
-    "q_hard_009": "compatible_with_warning",
+    "q_hard_009": "compatible",
     "q_hard_010": "compatible_with_warning",
     "q_hard_011": "incompatible",
     "q_hard_012": "incompatible",
@@ -482,7 +480,7 @@
     "q_hard_015": "compatible_with_warning",
     "q_hard_016": "compatible_with_warning",
     "q_hard_017": "compatible_with_warning",
-    "q_hard_018": "compatible_with_warning",
+    "q_hard_018": "compatible",
     "q_hard_019": "incompatible",
     "q_hard_020": "incompatible",
     "q_hard_021": "incompatible",
@@ -497,7 +495,7 @@
     "q_hard_030": "compatible_with_warning",
     "q_hard_031": "incompatible",
     "q_hard_032": "incompatible",
-    "q_hard_033": "incompatible",
+    "q_hard_033": "compatible",
     "q_hard_034": "compatible_with_warning",
     "q_hard_035": "incompatible",
     "q_hard_036": "incompatible",
@@ -525,13 +523,13 @@
     "q_medium_018": "incompatible",
     "q_medium_019": "compatible_with_warning",
     "q_medium_020": "incompatible",
-    "q_medium_021": "incompatible",
+    "q_medium_021": "compatible",
     "q_medium_022": "incompatible",
     "q_medium_023": "compatible_with_warning",
     "q_medium_024": "compatible",
     "q_medium_025": "compatible_with_warning",
     "q_medium_026": "incompatible",
-    "q_medium_027": "compatible_with_warning",
+    "q_medium_027": "compatible",
     "q_medium_028": "compatible_with_warning",
     "q_medium_029": "compatible_with_warning",
     "q_medium_030": "compatible_with_warning",
@@ -548,14 +546,14 @@
   },
   "schema_version": "dataset_chunk_compatibility_v1",
   "section_resolution": {
-    "ambiguous": 4,
+    "ambiguous": 1,
     "invalid": 0,
-    "resolved": 216,
+    "resolved": 219,
     "unresolved": 13
   },
   "unique_referenced_documents": 55,
-  "unresolved_case_count": 68,
-  "unresolved_cases_fingerprint": "36afa6980944180422f070211f39b8fefe3d26574d6ce0754bdc9a83d7b2913d",
+  "unresolved_case_count": 65,
+  "unresolved_cases_fingerprint": "e8831efc9035c61d1d676c6b5868ab7c6fce4cb9ea14438f9b650413c7571890",
   "valid_question_count": 140,
   "warnings": [
     {
@@ -615,8 +613,7 @@
     },
     {
       "messages": [
-        "q_easy_014_e01 sentence 0: normalized exact match",
-        "q_easy_014_e01: normalized section match"
+        "q_easy_014_e01 sentence 0: normalized exact match"
       ],
       "question_id": "q_easy_014"
     },
@@ -649,12 +646,6 @@
         "q_easy_022_e01 sentence 0: normalized exact match"
       ],
       "question_id": "q_easy_022"
-    },
-    {
-      "messages": [
-        "q_easy_023_e01: normalized section match"
-      ],
-      "question_id": "q_easy_023"
     },
     {
       "messages": [],
@@ -706,22 +697,18 @@
     },
     {
       "messages": [
-        "q_easy_036_e01 sentence 0: normalized exact match",
-        "q_easy_036_e01: normalized section match"
+        "q_easy_036_e01 sentence 0: normalized exact match"
       ],
       "question_id": "q_easy_036"
     },
     {
       "messages": [
-        "q_easy_037_e01 sentence 0: normalized exact match",
-        "q_easy_037_e01: normalized section match"
+        "q_easy_037_e01 sentence 0: normalized exact match"
       ],
       "question_id": "q_easy_037"
     },
     {
-      "messages": [
-        "q_easy_038_e01: normalized section match"
-      ],
+      "messages": [],
       "question_id": "q_easy_038"
     },
     {
@@ -735,15 +722,11 @@
       "question_id": "q_easy_040"
     },
     {
-      "messages": [
-        "q_easy_041_e01: normalized section match"
-      ],
+      "messages": [],
       "question_id": "q_easy_041"
     },
     {
-      "messages": [
-        "q_easy_042_e01: normalized section match"
-      ],
+      "messages": [],
       "question_id": "q_easy_042"
     },
     {
@@ -761,15 +744,11 @@
       "question_id": "q_easy_045"
     },
     {
-      "messages": [
-        "q_easy_046_e01: normalized section match"
-      ],
+      "messages": [],
       "question_id": "q_easy_046"
     },
     {
-      "messages": [
-        "q_easy_047_e01: normalized section match"
-      ],
+      "messages": [],
       "question_id": "q_easy_047"
     },
     {
@@ -790,28 +769,22 @@
     },
     {
       "messages": [
-        "q_easy_054_e01 sentence 0: normalized exact match",
-        "q_easy_054_e01: normalized section match"
+        "q_easy_054_e01 sentence 0: normalized exact match"
       ],
       "question_id": "q_easy_054"
     },
     {
-      "messages": [
-        "q_easy_055_e01: normalized section match"
-      ],
+      "messages": [],
       "question_id": "q_easy_055"
     },
     {
       "messages": [
-        "q_easy_056_e01 sentence 0: normalized exact match",
-        "q_easy_056_e01: normalized section match"
+        "q_easy_056_e01 sentence 0: normalized exact match"
       ],
       "question_id": "q_easy_056"
     },
     {
-      "messages": [
-        "q_easy_057_e01: normalized section match"
-      ],
+      "messages": [],
       "question_id": "q_easy_057"
     },
     {
@@ -819,9 +792,7 @@
       "question_id": "q_easy_058"
     },
     {
-      "messages": [
-        "q_easy_059_e01: normalized section match"
-      ],
+      "messages": [],
       "question_id": "q_easy_059"
     },
     {
@@ -865,9 +836,7 @@
     },
     {
       "messages": [
-        "q_hard_006_e01: normalized section match",
-        "q_hard_006_e02 sentence 0: normalized exact match",
-        "q_hard_006_e02: normalized section match"
+        "q_hard_006_e02 sentence 0: normalized exact match"
       ],
       "question_id": "q_hard_006"
     },
@@ -884,10 +853,7 @@
       "question_id": "q_hard_008"
     },
     {
-      "messages": [
-        "q_hard_009_e01: normalized section match",
-        "q_hard_009_e02: normalized section match"
-      ],
+      "messages": [],
       "question_id": "q_hard_009"
     },
     {
@@ -922,17 +888,12 @@
     },
     {
       "messages": [
-        "q_hard_017_e01 sentence 0: normalized exact match",
-        "q_hard_017_e01: normalized section match",
-        "q_hard_017_e02: normalized section match"
+        "q_hard_017_e01 sentence 0: normalized exact match"
       ],
       "question_id": "q_hard_017"
     },
     {
-      "messages": [
-        "q_hard_018_e01: normalized section match",
-        "q_hard_018_e02: normalized section match"
-      ],
+      "messages": [],
       "question_id": "q_hard_018"
     },
     {
@@ -963,12 +924,6 @@
     },
     {
       "messages": [
-        "q_hard_024_e02: normalized section match"
-      ],
-      "question_id": "q_hard_024"
-    },
-    {
-      "messages": [
         "q_hard_025_e01 sentence 0: normalized exact match",
         "q_hard_025_e02 sentence 0: normalized exact match",
         "q_hard_025_e03 sentence 0: normalized exact match"
@@ -978,9 +933,7 @@
     {
       "messages": [
         "q_hard_026_e01 sentence 0: normalized exact match",
-        "q_hard_026_e01: normalized section match",
         "q_hard_026_e02 sentence 0: normalized exact match",
-        "q_hard_026_e02: normalized section match",
         "q_hard_026_e03 sentence 0: normalized exact match"
       ],
       "question_id": "q_hard_026"
@@ -1005,6 +958,10 @@
       "question_id": "q_hard_030"
     },
     {
+      "messages": [],
+      "question_id": "q_hard_033"
+    },
+    {
       "messages": [
         "q_hard_034_e02 sentence 0: normalized exact match"
       ],
@@ -1012,18 +969,9 @@
     },
     {
       "messages": [
-        "q_hard_035_e03 sentence 0: normalized exact match",
-        "q_hard_035_e03: normalized section match"
+        "q_hard_035_e03 sentence 0: normalized exact match"
       ],
       "question_id": "q_hard_035"
-    },
-    {
-      "messages": [
-        "q_hard_037_e01: normalized section match",
-        "q_hard_037_e02: normalized section match",
-        "q_hard_037_e03: normalized section match"
-      ],
-      "question_id": "q_hard_037"
     },
     {
       "messages": [
@@ -1085,13 +1033,6 @@
     },
     {
       "messages": [
-        "q_medium_012_e01: normalized section match",
-        "q_medium_012_e02: normalized section match"
-      ],
-      "question_id": "q_medium_012"
-    },
-    {
-      "messages": [
         "q_medium_014_e02 sentence 0: normalized exact match"
       ],
       "question_id": "q_medium_014"
@@ -1132,6 +1073,10 @@
       "question_id": "q_medium_020"
     },
     {
+      "messages": [],
+      "question_id": "q_medium_021"
+    },
+    {
       "messages": [
         "q_medium_023_e01 sentence 0: normalized exact match"
       ],
@@ -1148,9 +1093,7 @@
       "question_id": "q_medium_025"
     },
     {
-      "messages": [
-        "q_medium_027_e02: normalized section match"
-      ],
+      "messages": [],
       "question_id": "q_medium_027"
     },
     {
@@ -1197,17 +1140,13 @@
     {
       "messages": [
         "q_medium_037_e01 sentence 0: normalized exact match",
-        "q_medium_037_e01: normalized section match",
-        "q_medium_037_e02 sentence 0: normalized exact match",
-        "q_medium_037_e02: normalized section match"
+        "q_medium_037_e02 sentence 0: normalized exact match"
       ],
       "question_id": "q_medium_037"
     },
     {
       "messages": [
-        "q_medium_038_e01 sentence 0: normalized exact match",
-        "q_medium_038_e01: normalized section match",
-        "q_medium_038_e02: normalized section match"
+        "q_medium_038_e01 sentence 0: normalized exact match"
       ],
       "question_id": "q_medium_038"
     },

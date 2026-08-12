@@ -219,23 +219,35 @@ def resolve_section(document: NormalizedDocument, section_path: list[str]) -> Se
         return SectionResolution("invalid", None, None, (), None, "section_path is malformed")
     sections = _sections(document)
     target = tuple(section_path)
-    exact = [item for item in sections if item[2] == target or item[2][-len(target):] == target]
+    exact = [item for item in sections if item[2] == target]
     if len(exact) == 1:
         start, end, path = exact[0]
-        return SectionResolution("resolved", start, end, (" > ".join(path),), "exact_path_or_suffix", "exact heading path")
+        return SectionResolution("resolved", start, end, (" > ".join(path),), "exact_path", "exact full heading path")
     if len(exact) > 1:
         return SectionResolution("ambiguous", None, None, tuple(" > ".join(item[2]) for item in exact), None, "heading path identifies multiple sections")
+    suffix = [item for item in sections if item[2][-len(target):] == target]
+    if len(suffix) == 1:
+        start, end, path = suffix[0]
+        return SectionResolution("resolved", start, end, (" > ".join(path),), "exact_suffix", "unique exact heading-path suffix")
+    if len(suffix) > 1:
+        return SectionResolution("ambiguous", None, None, tuple(" > ".join(item[2]) for item in suffix), None, "heading path suffix identifies multiple sections")
     normalized_target = tuple(_canonical_heading(item) for item in target)
-    normalized = [
-        item for item in sections
-        if tuple(_canonical_heading(part) for part in item[2]) == normalized_target
-        or tuple(_canonical_heading(part) for part in item[2])[-len(normalized_target):] == normalized_target
-    ]
+    normalized = [item for item in sections if tuple(
+        _canonical_heading(part) for part in item[2]
+    ) == normalized_target]
     if len(normalized) == 1:
         start, end, path = normalized[0]
         return SectionResolution("resolved", start, end, (" > ".join(path),), "normalized_heading_path", "NFKC/case/whitespace and Markdown-delimiter normalization")
     if len(normalized) > 1:
         return SectionResolution("ambiguous", None, None, tuple(" > ".join(item[2]) for item in normalized), None, "normalized heading path identifies multiple sections")
+    normalized_suffix = [item for item in sections if tuple(
+        _canonical_heading(part) for part in item[2]
+    )[-len(normalized_target):] == normalized_target]
+    if len(normalized_suffix) == 1:
+        start, end, path = normalized_suffix[0]
+        return SectionResolution("resolved", start, end, (" > ".join(path),), "normalized_heading_suffix", "unique normalized heading-path suffix")
+    if len(normalized_suffix) > 1:
+        return SectionResolution("ambiguous", None, None, tuple(" > ".join(item[2]) for item in normalized_suffix), None, "normalized heading suffix identifies multiple sections")
     return SectionResolution("unresolved", None, None, (), None, "section heading path is absent from the canonical document")
 
 

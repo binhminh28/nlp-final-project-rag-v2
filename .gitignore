@@ -32,6 +32,12 @@ data/processed/angular/*.jsonl
 !/data/evaluation/angular/compatibility/qa_dataset/evidence_chunk_mappings.jsonl
 !/data/evaluation/angular/compatibility/qa_dataset/DATASET_COMPATIBILITY_AUDIT.md
 !/data/evaluation/angular/compatibility/qa_dataset/manifest.json
+!/data/evaluation/angular/compatibility/qa_dataset/reconciliation/
+!/data/evaluation/angular/compatibility/qa_dataset/reconciliation/reconciliation_cases.jsonl
+!/data/evaluation/angular/compatibility/qa_dataset/reconciliation/proposed_corrections.jsonl
+!/data/evaluation/angular/compatibility/qa_dataset/reconciliation/stats.json
+!/data/evaluation/angular/compatibility/qa_dataset/reconciliation/RECONCILIATION_REPORT.md
+!/data/evaluation/angular/compatibility/qa_dataset/reconciliation/manifest.json
 
 # Environment files
 .env
