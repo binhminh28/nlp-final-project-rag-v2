@@ -33,6 +33,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--token-budget", type=int, default=2048)
     parser.add_argument("--context-token-budget", type=int, default=4096)
     parser.add_argument("--generation-provider", choices=("fake", "openrouter"), default="fake")
+    parser.add_argument(
+        "--generation-config", type=Path,
+        help="Exact GenerationConfig JSON; overrides individual generation flags",
+    )
     parser.add_argument("--generation-model", default="deterministic-fake-v1")
     parser.add_argument("--max-output-tokens", type=int, default=512)
     parser.add_argument("--context-window-tokens", type=int, default=8192)
@@ -51,13 +55,19 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.require_live_credentials:
             load_project_dotenv()
-        generation = GenerationConfig(
-            provider=args.generation_provider, model=args.generation_model,
-            temperature=args.temperature, max_output_tokens=args.max_output_tokens,
-            context_window_tokens=args.context_window_tokens, seed=args.seed,
-            timeout_seconds=args.timeout_seconds, max_retries=args.max_retries,
-            retry_backoff_seconds=args.retry_backoff_seconds,
-        )
+        if args.generation_config is not None:
+            value = json.loads(args.generation_config.read_text(encoding="utf-8"))
+            if not isinstance(value, dict):
+                raise ValueError("--generation-config must contain a JSON object")
+            generation = GenerationConfig(**value)
+        else:
+            generation = GenerationConfig(
+                provider=args.generation_provider, model=args.generation_model,
+                temperature=args.temperature, max_output_tokens=args.max_output_tokens,
+                context_window_tokens=args.context_window_tokens, seed=args.seed,
+                timeout_seconds=args.timeout_seconds, max_retries=args.max_retries,
+                retry_backoff_seconds=args.retry_backoff_seconds,
+            )
         evaluation = EvaluationConfig()
         protocol = RetrievalProtocolConfig(
             args.protocol, top_k=args.top_k, candidate_k=args.candidate_k,

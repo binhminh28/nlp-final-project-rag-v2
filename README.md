@@ -1,6 +1,6 @@
 # Structure-Aware Chunking for RAG
 
-This repository compares chunking strategies for an Angular technical-document corpus. Code, tests, configuration, and committed artifacts are authoritative. The final evidence-aware QA benchmark is **not yet executed** because the delivered team dataset has not passed the strict evidence-to-chunk compatibility gate.
+This repository compares chunking strategies for an Angular technical-document corpus. Code, tests, configuration, and committed artifacts are authoritative. The canonical production v2 benchmark is **complete** for all 140 questions and three strategies. See [FINAL_BENCHMARK_REPORT.md](FINAL_BENCHMARK_REPORT.md).
 
 ## Current Status
 
@@ -14,10 +14,10 @@ This repository compares chunking strategies for an Angular technical-document c
 | Dense retrieval | Implemented and historically executed | One controlled retriever for every chunking strategy. |
 | Historical source-level benchmark | Completed | 64 queries and 79 relative-path labels; not canonical QA. |
 | Retrieval budget protocols | Implemented | Post-ranking selection policies. |
-| Evidence-aware retrieval evaluation | Implemented; production run pending | Requires canonical QA data. |
+| Evidence-aware retrieval evaluation | Canonical v2 complete | 140 questions, three strategies, frozen 2,048-token protocol. |
 | Context construction | Implemented | Deterministic formatter over selected hits. |
-| Answer generation | Implemented; production run pending | Operator explicitly selects a production model. |
-| Deterministic answer evaluation | Implemented; production run pending | Offline lexical evaluation of committed generation artifacts. |
+| Answer generation | Canonical v2 complete | `openai/gpt-5-mini`, fingerprint `c4f4768e...`, concurrency 8. |
+| Deterministic answer evaluation | Canonical v2 complete | 420/420 committed answers; evaluation fingerprint `c6867bff...`. |
 | Original HiChunk (HC200) | Not implemented | No chunker, CLI, test, config, or artifact. |
 | Auto-Merge / hierarchical retrieval | Not implemented | Planned extension only. |
 
@@ -199,7 +199,7 @@ QA record -> retrieval: id + question
           -> evaluation: answer/evidence/category/difficulty metadata
 ```
 
-The real benchmark remains closed until the compatibility report says `PASS`. Test fixtures are development plumbing only and must not be used for research results. Details are in [FINAL_BENCHMARK_HANDOFF.md](FINAL_BENCHMARK_HANDOFF.md).
+The compatibility report now passes for all 140 questions. Canonical v2 artifacts are under `data/benchmark/angular/canonical_v2/`; test fixtures remain development plumbing only. Execution details are in [FINAL_BENCHMARK_HANDOFF.md](FINAL_BENCHMARK_HANDOFF.md), and results are in [FINAL_BENCHMARK_REPORT.md](FINAL_BENCHMARK_REPORT.md).
 
 ## Context Construction and Generation
 

@@ -6,7 +6,7 @@ import json
 import math
 import statistics
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +20,7 @@ from rag_chunking.retrieval.service import RetrievalService
 
 from .evidence import EvidenceMapping, map_evidence_to_chunks, retrieved_evidence_coverage
 from .metrics import EVIDENCE_METRICS_VERSION, METRICS_VERSION, aggregate, aggregate_evidence, evaluate_evidence_coverage, evaluate_ranking
-from .qa_dataset import QA_DATASET_SCHEMA_VERSION, QADataset
+from .qa_dataset import QADataset
 
 
 EVIDENCE_BENCHMARK_SCHEMA_VERSION = "evidence_retrieval_benchmark_v1"
@@ -62,6 +62,32 @@ def _mapping_relevant_ids(mappings: list[EvidenceMapping]) -> set[str]:
     return {chunk_id for mapping in mappings for chunk_id in mapping.matched_chunk_ids}
 
 
+def _record_doc_ids(record) -> set[str]:
+    return {item.doc_id for item in record.evidence} if record.evidence else {record.doc_id}
+
+
+def _map_record_evidence(record, documents, chunks, strategy) -> list[EvidenceMapping]:
+    if not record.evidence:
+        return map_evidence_to_chunks(
+            record, documents[record.doc_id], chunks, strategy,
+        )
+    mappings: list[EvidenceMapping] = []
+    for evidence in record.evidence:
+        projection = replace(
+            record, doc_id=evidence.doc_id,
+            evidence_sentences=list(evidence.evidence_sentences),
+            evidence_sections=[], evidence=[],
+        )
+        projected = map_evidence_to_chunks(
+            projection, documents[evidence.doc_id], chunks, strategy,
+        )
+        mappings.extend(
+            replace(mapping, evidence_id=f"{evidence.evidence_id}:sentence:{index}")
+            for index, mapping in enumerate(projected)
+        )
+    return mappings
+
+
 def run_evidence_retrieval_benchmark(
     service: RetrievalService,
     dataset: QADataset,
@@ -81,12 +107,13 @@ def run_evidence_retrieval_benchmark(
         raise ValueError("protocol modes must be non-empty and unique")
     if set(strategies) - set(service.indexes) or set(strategies) - set(chunks_by_strategy):
         raise ValueError("all strategies require a loaded index and chunk artifact")
-    if {record.doc_id for record in dataset.records} - set(documents):
+    declared_doc_ids = {doc_id for record in dataset.records for doc_id in _record_doc_ids(record)}
+    if declared_doc_ids - set(documents):
         raise ValueError("one or more QA documents are not loaded")
     candidate_depth = max(protocol.candidate_k for protocol in protocols)
     identity = {
         "schema_version": EVIDENCE_BENCHMARK_SCHEMA_VERSION,
-        "qa_schema_version": QA_DATASET_SCHEMA_VERSION,
+        "qa_schema_version": dataset.schema_version,
         "dataset_fingerprint": dataset.fingerprint,
         "corpus": service.corpus,
         "corpus_fingerprint": corpus_fingerprint,
@@ -119,8 +146,8 @@ def run_evidence_retrieval_benchmark(
             cache_hits += int(cache_hit)
             cache_misses += int(not cache_hit)
             for strategy in strategies:
-                mappings = map_evidence_to_chunks(
-                    record, documents[record.doc_id], chunks_by_strategy[strategy], strategy,
+                mappings = _map_record_evidence(
+                    record, documents, chunks_by_strategy[strategy], strategy,
                 )
                 mappings_cache[(record.id, strategy)] = mappings
                 if not mappings:
@@ -136,7 +163,8 @@ def run_evidence_retrieval_benchmark(
                     relevant_ids = _mapping_relevant_ids(mappings)
                     # Preserve the historical metrics' source-path semantics.
                     # Evidence/chunk relevance is reported separately below.
-                    relevant_sources = {documents[record.doc_id].relative_path}
+                    evidence_doc_ids = _record_doc_ids(record)
+                    relevant_sources = {documents[doc_id].relative_path for doc_id in evidence_doc_ids}
                     ranking = evaluate_ranking(
                         [hit.relative_path for hit in selection.hits], relevant_sources,
                     )
@@ -147,7 +175,8 @@ def run_evidence_retrieval_benchmark(
                     per_query.append({
                         "query_id": record.id, "question": record.question,
                         "question_type": record.question_type, "difficulty": record.difficulty,
-                        "doc_id": record.doc_id, "strategy": strategy, "protocol": protocol.mode,
+                        "doc_id": record.doc_id, "evidence_doc_ids": sorted(evidence_doc_ids),
+                        "strategy": strategy, "protocol": protocol.mode,
                         "retrieval_config_fingerprint": service.config.fingerprint,
                         "protocol_config_fingerprint": protocol.fingerprint,
                         "embedding_config_fingerprint": service.embedding_config.fingerprint,

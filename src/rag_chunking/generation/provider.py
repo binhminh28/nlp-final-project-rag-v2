@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -97,6 +98,8 @@ class OpenRouterGenerationProvider:
         self._diagnostics_output = diagnostics_output
         self._raw_diagnostics_output = raw_diagnostics_output
         self._diagnostics: list[dict[str, Any]] = []
+        self._state_lock = threading.Lock()
+        self._diagnostic_context = threading.local()
         if diagnostics_output is not None and diagnostics_output.exists():
             for line_number, line in enumerate(
                 diagnostics_output.read_text(encoding="utf-8").splitlines(), 1
@@ -109,8 +112,6 @@ class OpenRouterGenerationProvider:
                         f"invalid provider diagnostic at {diagnostics_output}:{line_number}"
                     )
                 self._diagnostics.append(value)
-        self._diagnostic_query_id: str | None = None
-        self._diagnostic_prompt_fingerprint: str | None = None
         self.calls = 0
         self.retries = 0
 
@@ -120,12 +121,21 @@ class OpenRouterGenerationProvider:
 
     @property
     def diagnostics(self) -> tuple[dict[str, Any], ...]:
-        return tuple(self._diagnostics)
+        with self._state_lock:
+            return tuple(self._diagnostics)
 
     def set_diagnostic_context(self, query_id: str, prompt_fingerprint: str) -> None:
         """Attach safe request identity without changing generation semantics."""
-        self._diagnostic_query_id = query_id
-        self._diagnostic_prompt_fingerprint = prompt_fingerprint
+        self._diagnostic_context.query_id = query_id
+        self._diagnostic_context.prompt_fingerprint = prompt_fingerprint
+
+    def _increment_calls(self) -> None:
+        with self._state_lock:
+            self.calls += 1
+
+    def _increment_retries(self) -> None:
+        with self._state_lock:
+            self.retries += 1
 
     def _record_diagnostic(
         self, *, attempt: int, event: str, config: GenerationConfig,
@@ -159,10 +169,12 @@ class OpenRouterGenerationProvider:
             }
         else:
             provider_error = None
+        query_id = getattr(self._diagnostic_context, "query_id", None)
+        prompt_fingerprint = getattr(self._diagnostic_context, "prompt_fingerprint", None)
         record = {
             "diagnostic_schema_version": "generation_provider_diagnostic_v1",
-            "query_id": self._diagnostic_query_id,
-            "prompt_fingerprint": self._diagnostic_prompt_fingerprint,
+            "query_id": query_id,
+            "prompt_fingerprint": prompt_fingerprint,
             "attempt": attempt,
             "event": event,
             "endpoint": f"{self._base_url}/chat/completions",
@@ -204,25 +216,26 @@ class OpenRouterGenerationProvider:
             "provider_error": provider_error,
             "transport_error": error,
         }
-        self._diagnostics.append(record)
-        if self._diagnostics_output is not None:
-            self._diagnostics_output.parent.mkdir(parents=True, exist_ok=True)
-            serialized = "".join(
-                json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
-                for item in self._diagnostics
-            )
-            self._diagnostics_output.write_text(serialized, encoding="utf-8")
-        if self._raw_diagnostics_output is not None and envelope is not None:
-            self._raw_diagnostics_output.mkdir(parents=True, exist_ok=True)
-            safe_id = "".join(
-                character if character.isalnum() or character in "-_" else "_"
-                for character in (self._diagnostic_query_id or "unknown")
-            )
-            raw_path = self._raw_diagnostics_output / f"{safe_id}.attempt-{attempt}.json"
-            raw_path.write_text(
-                json.dumps(envelope, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
+        with self._state_lock:
+            self._diagnostics.append(record)
+            if self._diagnostics_output is not None:
+                self._diagnostics_output.parent.mkdir(parents=True, exist_ok=True)
+                serialized = "".join(
+                    json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+                    for item in self._diagnostics
+                )
+                self._diagnostics_output.write_text(serialized, encoding="utf-8")
+            if self._raw_diagnostics_output is not None and envelope is not None:
+                self._raw_diagnostics_output.mkdir(parents=True, exist_ok=True)
+                safe_id = "".join(
+                    character if character.isalnum() or character in "-_" else "_"
+                    for character in (query_id or "unknown")
+                )
+                raw_path = self._raw_diagnostics_output / f"{safe_id}.attempt-{attempt}.json"
+                raw_path.write_text(
+                    json.dumps(envelope, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
 
     def complete(self, messages: tuple[ChatMessage, ...], config: GenerationConfig) -> ProviderResponse:
         if config.provider != "openrouter":
@@ -253,7 +266,7 @@ class OpenRouterGenerationProvider:
             request = urllib.request.Request(
                 f"{self._base_url}/chat/completions", data=encoded, headers=headers, method="POST",
             )
-            self.calls += 1
+            self._increment_calls()
             try:
                 with urllib.request.urlopen(request, timeout=config.timeout_seconds) as response:
                     raw = response.read().decode("utf-8")
@@ -282,7 +295,7 @@ class OpenRouterGenerationProvider:
                     )
                     if not error.retryable or attempt >= config.max_retries:
                         raise last_error from error
-                    self.retries += 1
+                    self._increment_retries()
                     time.sleep(config.retry_backoff_seconds * (2**attempt))
                     continue
                 return parsed
@@ -304,7 +317,7 @@ class OpenRouterGenerationProvider:
                 )
                 if not retryable or attempt >= config.max_retries:
                     raise last_error from error
-                self.retries += 1
+                self._increment_retries()
                 retry_after = error.headers.get("Retry-After") if error.headers else None
                 try:
                     delay = float(retry_after) if retry_after is not None else config.retry_backoff_seconds * (2**attempt)
@@ -322,7 +335,7 @@ class OpenRouterGenerationProvider:
                 )
                 if attempt >= config.max_retries:
                     raise last_error from error
-                self.retries += 1
+                self._increment_retries()
                 time.sleep(config.retry_backoff_seconds * (2**attempt))
         raise last_error or RuntimeError("OpenRouter retry loop ended unexpectedly")
 

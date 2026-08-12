@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import threading
 
 from .cache import GenerationCache
 from .models import (
@@ -30,6 +31,7 @@ class GenerationService:
         self.prompt_builder = prompt_builder or AnswerPromptBuilder(config)
         self.cache_hits = 0
         self.cache_misses = 0
+        self._stats_lock = threading.Lock()
 
     def construct_prompt(self, generation_input: GenerationInput) -> AnswerPrompt:
         expected_context_budget = self.config.prepared_context_token_budget
@@ -60,9 +62,11 @@ class GenerationService:
         if self.cache is not None:
             cached = self.cache.get(prompt.prompt_fingerprint, self.config.fingerprint)
             if cached is not None:
-                self.cache_hits += 1
+                with self._stats_lock:
+                    self.cache_hits += 1
                 return self._with_current_lineage(cached, generation_input)
-            self.cache_misses += 1
+            with self._stats_lock:
+                self.cache_misses += 1
         set_context = getattr(self.provider, "set_diagnostic_context", None)
         if callable(set_context):
             set_context(generation_input.query_id, prompt.prompt_fingerprint)

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import fcntl
 import json
+import threading
+import time
 import urllib.error
 from dataclasses import replace
 from pathlib import Path
@@ -626,3 +629,152 @@ def test_canonical_gpt5mini_v2_config_has_expected_fingerprint():
     assert cfg.fingerprint == "c4f4768ec9b80361dfd0a1e252f74ff348aa4e4c953bcca02761ba345f38b301"
     assert cfg.reasoning_effort == "low"
     assert cfg.completion_integrity_policy == "require_stop"
+
+
+class ConcurrentScenarioProvider:
+    def __init__(self, *, transient=None, permanent=(), finish_reasons=None):
+        self.transient = dict(transient or {})
+        self.permanent = set(permanent)
+        self.finish_reasons = dict(finish_reasons or {})
+        self.calls = self.retries = self.active = self.max_active = 0
+        self.attempts = {}
+        self.lock = threading.Lock()
+
+    def complete(self, messages, cfg):
+        content = messages[1].content
+        query_id = content.split("Question:\n", 1)[1].split("\n\nContext:", 1)[0]
+        with self.lock:
+            self.active += 1
+            self.max_active = max(self.max_active, self.active)
+        try:
+            for attempt in range(cfg.max_retries + 1):
+                with self.lock:
+                    self.calls += 1
+                    self.attempts[query_id] = self.attempts.get(query_id, 0) + 1
+                    query_attempt = self.attempts[query_id]
+                time.sleep(0.01)
+                if query_id in self.permanent or query_attempt <= self.transient.get(query_id, 0):
+                    if attempt < cfg.max_retries:
+                        with self.lock:
+                            self.retries += 1
+                        continue
+                    raise GenerationProviderError(
+                        "exhausted test retry", retryable=True, attempts=attempt + 1,
+                    )
+                return ProviderResponse(
+                    f"answer {query_id}", output_tokens=2, input_tokens=10,
+                    finish_reason=self.finish_reasons.get(query_id, "stop"),
+                )
+        finally:
+            with self.lock:
+                self.active -= 1
+
+
+def concurrent_inputs(cfg, count=8):
+    return [
+        generation_input(
+            cfg, question=f"q-{index:03d}", query_id=f"q-{index:03d}",
+            result=context(f"evidence {index}", query_id=f"q-{index:03d}"),
+        )
+        for index in range(count)
+    ]
+
+
+def test_concurrent_eight_successes_are_persisted_once(tmp_path: Path):
+    cfg = config()
+    provider = ConcurrentScenarioProvider()
+    result = run_generation(
+        concurrent_inputs(cfg), GenerationService(cfg, provider, cache=GenerationCache(tmp_path / "cache")),
+        tmp_path / "run", max_concurrency=8,
+    )
+    assert result.complete and len(result.answers) == 8
+    assert provider.max_active == 8
+    assert len({item.query_id for item in result.answers}) == 8
+    assert result.stats["max_concurrency"] == 8
+    manifest = json.loads((tmp_path / "run" / "manifest.json").read_text())
+    assert manifest["execution"] == {"max_concurrency": 8}
+    assert manifest["generation_config_fingerprint"] == cfg.fingerprint
+
+
+def test_concurrent_mixed_success_and_retry_is_isolated(tmp_path: Path):
+    cfg = config(max_retries=2)
+    provider = ConcurrentScenarioProvider(transient={"q-001": 1, "q-004": 2})
+    result = run_generation(concurrent_inputs(cfg), GenerationService(cfg, provider), tmp_path / "run", max_concurrency=8)
+    assert result.complete and result.stats["provider_retries"] == 3
+    assert provider.attempts["q-001"] == 2 and provider.attempts["q-004"] == 3
+    assert all(provider.attempts[item.query_id] == 1 for item in result.answers if item.query_id not in {"q-001", "q-004"})
+
+
+def test_concurrent_permanent_failure_blocks_manifest_but_preserves_others(tmp_path: Path):
+    cfg = config(max_retries=1)
+    provider = ConcurrentScenarioProvider(permanent={"q-003"})
+    result = run_generation(concurrent_inputs(cfg), GenerationService(cfg, provider, cache=GenerationCache(tmp_path / "cache")), tmp_path / "run", max_concurrency=8)
+    assert not result.complete and len(result.answers) == 7
+    assert [item["query_id"] for item in result.failures] == ["q-003"]
+    assert not (tmp_path / "run" / "manifest.json").exists()
+
+
+def test_concurrent_cache_hits_only_invoke_uncached_requests(tmp_path: Path):
+    cfg = config()
+    cache = GenerationCache(tmp_path / "cache")
+    items = concurrent_inputs(cfg)
+    warm_service = GenerationService(cfg, ConcurrentScenarioProvider(), cache=cache)
+    for item in items[:4]:
+        warm_service.generate(item)
+    provider = ConcurrentScenarioProvider()
+    result = run_generation(items, GenerationService(cfg, provider, cache=cache), tmp_path / "run", max_concurrency=8)
+    assert result.complete and result.stats["cache_hits"] == 4 and provider.calls == 4
+
+
+
+def test_generation_output_rejects_a_competing_process_lock(tmp_path: Path):
+    cfg = config()
+    output = tmp_path / "run"
+    output.mkdir()
+    with (output / ".generation-run.lock").open("a+") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(ValueError, match="another generation process"):
+            run_generation(
+                concurrent_inputs(cfg, 1), GenerationService(cfg, ConcurrentScenarioProvider()),
+                output, max_concurrency=8,
+            )
+
+
+def test_concurrent_duplicate_query_ids_are_rejected_before_work(tmp_path: Path):
+    cfg = config()
+    item = concurrent_inputs(cfg, 1)[0]
+    provider = ConcurrentScenarioProvider()
+    with pytest.raises(ValueError, match="duplicate query IDs"):
+        run_generation([item, item], GenerationService(cfg, provider), tmp_path / "run", max_concurrency=8)
+    assert provider.calls == 0
+
+
+def test_concurrent_partial_run_resumes_from_success_cache(tmp_path: Path):
+    cfg = config(max_retries=0)
+    items = concurrent_inputs(cfg)
+    cache = GenerationCache(tmp_path / "cache")
+    first = run_generation(items, GenerationService(cfg, ConcurrentScenarioProvider(permanent={"q-003"}), cache=cache), tmp_path / "run", max_concurrency=8)
+    assert not first.complete and len(first.answers) == 7
+    provider = ConcurrentScenarioProvider()
+    resumed = run_generation(items, GenerationService(cfg, provider, cache=cache), tmp_path / "run", max_concurrency=8)
+    assert resumed.complete and provider.calls == 1 and resumed.stats["cache_hits"] == 7
+
+
+def test_concurrent_cache_keeps_v1_and_v2_fingerprints_isolated(tmp_path: Path):
+    cache = GenerationCache(tmp_path / "cache")
+    v1 = config()
+    v2 = v2_config()
+    GenerationService(v1, ConcurrentScenarioProvider(), cache=cache).generate(concurrent_inputs(v1, 1)[0])
+    provider = ConcurrentScenarioProvider()
+    result = run_generation(concurrent_inputs(v2, 1), GenerationService(v2, provider, cache=cache), tmp_path / "run", max_concurrency=8)
+    assert result.complete and provider.calls == 1 and result.stats["cache_hits"] == 0
+
+
+def test_concurrent_integrity_failure_does_not_commit_manifest(tmp_path: Path):
+    cfg = v2_config()
+    provider = ConcurrentScenarioProvider(finish_reasons={"q-002": "length"})
+    result = run_generation(concurrent_inputs(cfg), GenerationService(cfg, provider, cache=GenerationCache(tmp_path / "cache")), tmp_path / "run", max_concurrency=8)
+    assert not result.complete and len(result.answers) == 7
+    assert result.failures[0]["error_type"] == "GenerationIntegrityError"
+    assert result.failures[0]["finish_reason"] == "length"
+    assert not (tmp_path / "run" / "manifest.json").exists()

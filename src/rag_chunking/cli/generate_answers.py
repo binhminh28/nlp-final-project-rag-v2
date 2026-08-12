@@ -48,6 +48,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-retries", type=int, default=3)
     parser.add_argument("--retry-backoff-seconds", type=float, default=0.5)
     parser.add_argument(
+        "--concurrency", type=int, default=1,
+        help="Maximum independent generation requests in flight (execution metadata only)",
+    )
+    parser.add_argument(
         "--diagnostics-output", type=Path,
         help="Non-canonical safe per-attempt diagnostic JSONL",
     )
@@ -78,6 +82,8 @@ def _load_inputs(path: Path, config: GenerationConfig) -> list[GenerationInput]:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        if args.concurrency <= 0:
+            raise ValueError("--concurrency must be positive")
         config = GenerationConfig(
             provider=args.provider, model=args.model, temperature=args.temperature,
             top_p=args.top_p, max_output_tokens=args.max_output_tokens, seed=args.seed,
@@ -109,7 +115,9 @@ def main(argv: list[str] | None = None) -> int:
         else:
             provider = DeterministicFakeGenerationProvider()
         service = GenerationService(config, provider, cache=GenerationCache(args.cache))
-        result = run_generation(inputs, service, args.output)
+        result = run_generation(
+            inputs, service, args.output, max_concurrency=args.concurrency,
+        )
     except (OSError, RuntimeError, ValueError) as error:
         print(f"ERROR: {error}")
         return 1

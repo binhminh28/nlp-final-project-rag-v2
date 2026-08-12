@@ -7,9 +7,11 @@ from rag_chunking.chunking.models import Chunk
 from rag_chunking.chunking.tokenizer import TiktokenTokenizer
 from rag_chunking.data.models import DocumentBlock, NormalizedDocument
 from rag_chunking.evaluation.evidence import map_evidence_to_chunks, retrieved_evidence_coverage
-from rag_chunking.evaluation.evidence_runner import run_evidence_retrieval_benchmark
+from rag_chunking.evaluation.evidence_runner import _map_record_evidence, run_evidence_retrieval_benchmark
 from rag_chunking.evaluation.metrics import aggregate_evidence, evaluate_evidence_coverage
-from rag_chunking.evaluation.qa_dataset import QADataset, QARecord, load_qa_dataset, validate_qa_semantics
+from rag_chunking.evaluation.qa_dataset import (
+    EvidenceSpec, GoldEvidenceItem, QADataset, QARecord, load_qa_dataset, validate_qa_semantics,
+)
 from rag_chunking.embedding.provider import DeterministicFakeEmbeddingProvider
 from rag_chunking.retrieval.protocols import SAME_TOKEN_BUDGET, SAME_TOP_K, RetrievalProtocolConfig
 from rag_chunking.retrieval.service import RetrievalService
@@ -123,6 +125,27 @@ def test_qa_loader_rejects_schema_errors(tmp_path: Path, change, match):
     path = tmp_path / "qa.jsonl"; path.write_text(json.dumps(value) + "\n")
     with pytest.raises(ValueError, match=match):
         load_qa_dataset(path, {"test:guide.md"})
+
+
+
+def test_structured_team_evidence_maps_with_authored_identity():
+    doc = document()
+    text = doc.blocks[1].text
+    chunk = structural_chunk(0, 1, 0, len(text), text)
+    record = QARecord(
+        id="q-team", doc_id=doc.doc_id, question="What crosses?", answer="beta",
+        evidence_sentences=[], evidence_sections=[], question_type="multi_evidence",
+        difficulty="medium", evidence=[GoldEvidenceItem(
+            evidence_id="q-team_e01", doc_id=doc.doc_id, section_path=["Café Signals"],
+            evidence_sentences=[EvidenceSpec(text)],
+        )],
+    )
+    mappings = _map_record_evidence(
+        record, {doc.doc_id: doc}, [chunk], "structure_aware",
+    )
+    assert len(mappings) == 1
+    assert mappings[0].evidence_id == "q-team_e01:sentence:0"
+    assert mappings[0].matched_chunk_ids == [chunk.chunk_id]
 
 
 def test_three_strategy_two_protocol_dev_integration_is_deterministic(tmp_path: Path):

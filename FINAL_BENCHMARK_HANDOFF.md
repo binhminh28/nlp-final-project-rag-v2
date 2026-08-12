@@ -1,5 +1,31 @@
 # Final Benchmark Handoff
 
+## Canonical production v2 completion
+
+**PRODUCTION BENCHMARK V2: COMPLETE.** This section supersedes the historical pre-v2 readiness snapshot retained below for audit context.
+
+- Dataset: 140 questions; `9866799ea8f87c6a7c118cbaf0d8c298524757bd753db5d640e1a32234206d74`.
+- Generation: `configs/generation_gpt5mini_v2.json`; `c4f4768ec9b80361dfd0a1e252f74ff348aa4e4c953bcca02761ba345f38b301`.
+- Execution: fixed concurrency 8; 420/420 answers committed.
+- Canonical inputs and generation: `data/benchmark/angular/canonical_v2/`.
+- Retrieval: `data/retrieval/angular/canonical_production_v2/9dab4015ca1ae4c4abda04ccc5809a5e030c793fcc7feff932d04ecfb116a6b7/`.
+- Evaluation: `data/benchmark/angular/canonical_v2/evaluation/`.
+- Final report: [FINAL_BENCHMARK_REPORT.md](FINAL_BENCHMARK_REPORT.md).
+
+Reproduce deterministic evaluation with:
+
+```bash
+evaluate-answers --dataset data/evaluation/angular/qa_dataset.jsonl \
+  --documents data/processed/angular/documents.jsonl \
+  --prepared-inputs data/benchmark/angular/canonical_v2/inputs \
+  --generation fixed_size=data/benchmark/angular/canonical_v2/generation/fixed_size \
+  --generation structure_aware=data/benchmark/angular/canonical_v2/generation/structure_aware \
+  --generation prompt_based=data/benchmark/angular/canonical_v2/generation/prompt_based \
+  --output data/benchmark/angular/canonical_v2/evaluation
+```
+
+## Historical pre-v2 readiness snapshot
+
 ## Readiness versus completion
 
 The implementation pipeline is complete through deterministic paired answer
