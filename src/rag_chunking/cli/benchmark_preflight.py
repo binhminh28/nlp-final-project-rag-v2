@@ -14,7 +14,7 @@ from rag_chunking.readiness import run_benchmark_preflight
 from rag_chunking.retrieval import RetrievalProtocolConfig, SAME_TOKEN_BUDGET, SAME_TOP_K
 
 
-DEFAULT_DATASET = Path("data/evaluation/angular/canonical_qa_v1.jsonl")
+DEFAULT_DATASET = Path("data/evaluation/angular/qa_dataset.jsonl")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,6 +22,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     parser.add_argument("--corpus", default="angular")
     parser.add_argument("--processed-root", type=Path, default=Path("data/processed"))
+    parser.add_argument("--raw-root", type=Path, default=Path("data/raw"))
     parser.add_argument("--chunks-root", type=Path, default=Path("data/chunks"))
     parser.add_argument("--embeddings-root", type=Path, default=Path("data/embeddings"))
     parser.add_argument("--indexes-root", type=Path, default=Path("data/indexes"))
@@ -65,7 +66,8 @@ def main(argv: list[str] | None = None) -> int:
         context = ContextConfig(context_token_budget=args.context_token_budget)
         report = run_benchmark_preflight(
             dataset_path=args.dataset, corpus=args.corpus,
-            processed_root=args.processed_root, chunks_root=args.chunks_root,
+            processed_root=args.processed_root, raw_root=args.raw_root,
+            chunks_root=args.chunks_root,
             embeddings_root=args.embeddings_root, indexes_root=args.indexes_root,
             embedding_config_path=args.embedding_config,
             generation_config=generation, evaluation_config=evaluation,

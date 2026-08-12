@@ -4,58 +4,57 @@
 
 The implementation pipeline is complete through deterministic paired answer
 evaluation. The production experiment is **not complete**: the teammate-owned
-canonical QA dataset has not been delivered. Synthetic fixtures in `tests/` are
-plumbing checks only and must never be used for research results.
+QA dataset is present, but its strict evidence-to-corpus/chunk compatibility gate
+currently fails. Synthetic fixtures in `tests/` are plumbing checks only.
 
 Expected handoff path:
 
 ```text
-data/evaluation/angular/canonical_qa_v1.jsonl
+data/evaluation/angular/qa_dataset.jsonl
 ```
 
-This path is explicitly unignored while other generated `data/` artifacts remain
-ignored. The repository owns validation, fingerprinting, compatibility checks,
-orchestration, and artifact publication. The dataset teammate owns authored
-questions, gold answers, evidence, `question_type`, difficulty, notes, and content
-review. Validation never repairs or rewrites their semantic content.
+This immutable upstream path is explicitly unignored. The repository owns its
+adapter, validation, fingerprinting, compatibility checks, orchestration, and
+artifact publication. Validation never repairs or rewrites authored content.
+
+Run `audit-dataset-compatibility` before any retrieval or generation. The report
+is committed manifest-last under `data/evaluation/angular/compatibility/qa_dataset`.
+`prepare-answer-inputs`, evidence retrieval, and `benchmark-preflight` apply the
+same gate and exit non-zero when it fails.
 
 ## Authoritative QA contract
 
-The selected loader fixes the external schema to `evidence_qa_dataset_v1`. JSONL
-is preferred; a UTF-8 JSON array is also accepted. JSONL row order and JSON key
-order do not affect identity because validated records are sorted by `id` before
-fingerprinting. File name, location, timestamps, and runtime paths are excluded.
+The real external schema is adapted as `team_evidence_qa_adapter_v1`. JSONL row
+order and JSON key order do not affect identity because validated records are
+sorted by `question_id` before fingerprinting. File location and timestamps are
+excluded. Nested evidence is never flattened.
 
 | Field | Type | Required | Meaning and validation | Pipeline use |
 |---|---|---:|---|---|
-| `id` | string | yes | Query ID; non-empty, whitespace-free, globally unique | Retrieval/generation identity; evaluation alignment |
-| `doc_id` | string | yes | Exact canonical processed-document ID, e.g. `angular:guide/signals.md`; must exist | Evidence mapping/evaluation only |
+| `question_id` | string | yes | Query ID; non-empty, whitespace-free, globally unique | Canonical `id`; retrieval/generation identity |
 | `question` | string | yes | Non-empty; trim-only normalization at load | Exact retrieval and generation question; evaluation provenance |
-| `answer` | string | yes | Non-empty single gold reference; no aliases/multiple-answer encoding | Evaluation only |
-| `evidence_sentences` | array | yes | Strings or provenance objects; may be empty only when sections provide evidence | Evidence validation/diagnostics only |
-| `evidence_sections` | string array | yes | Canonical heading or heading path; may be empty only when sentence evidence exists | Evidence validation/diagnostics only |
+| `reference_answer` | string | yes | Non-empty gold reference | Canonical `answer`; evaluation only |
+| `evidence` | object array | yes | `evidence_id`, `doc_id`, `section_path`, and non-empty `evidence_sentences` | Structured provenance and relevance labels |
 | `question_type` | string | yes | Non-empty open-ended canonical category; no separate `category` field | Evaluation grouping/paired metadata only |
 | `difficulty` | string | yes | Non-empty teammate-assigned label | Evaluation/paired metadata only |
-| `notes` | string or null | no | Curation/audit metadata | Evaluation metadata only |
+| `reasoning_type` | string | yes | Non-empty authored reasoning label | Stratified reporting only |
+| `metadata` | object | yes | Scope, evidence count, competition/content/answerability fields | Validation and stratified reporting only |
 
-An evidence provenance object has exactly:
+An evidence item has exactly:
 
 ```json
 {
-  "text": "Exact evidence text",
-  "block_index": 12,
-  "char_start": 5,
-  "char_end": 24
+  "evidence_id": "q1_e01",
+  "doc_id": "angular:guide/example.md",
+  "section_path": ["Parent", "Child"],
+  "evidence_sentences": ["Exact authored evidence text."]
 }
 ```
 
-`text` is required. `block_index` is optional and zero-based. Character offsets
-must be supplied together, require `block_index`, are zero-based half-open source
-offsets, and must select exactly `text` from that normalized document block. If
-only `block_index` is supplied, the text must occur in that block. Plain evidence
-text must occur in the declared document. Section matching uses Unicode NFKC,
-case folding, and whitespace collapse for validation while fingerprinting keeps
-the original semantic strings.
+The audit derives block and zero-based half-open character provenance without
+changing this object. It permits exact text, NFKC/case/whitespace normalization,
+and delimiter-only rendered-Markdown normalization. It never uses embeddings,
+LLMs, semantic similarity, retrieval results, or filename-only document matches.
 
 Every accepted row field—including `notes`, category, difficulty, answer, and
 evidence—contributes to the dataset fingerprint. The external file does not carry
@@ -86,19 +85,20 @@ no category/difficulty prompt branch.
 
 ## Validation and preflight
 
-After the teammate places the file at the expected path:
+Validate the schema, then run the required compatibility gate:
 
 ```bash
 validate-qa-dataset \
-  --dataset data/evaluation/angular/canonical_qa_v1.jsonl \
+  --dataset data/evaluation/angular/qa_dataset.jsonl \
   --documents data/processed/angular/documents.jsonl
+
+audit-dataset-compatibility \
+  --dataset data/evaluation/angular/qa_dataset.jsonl
 ```
 
-This rejects malformed UTF-8/JSON/JSONL, duplicate JSON keys or IDs, unknown or
-missing fields, empty IDs/questions/answers/categories/difficulty, unknown
-documents, malformed/out-of-range spans, source-text/span disagreement, missing
-evidence, and unsupported schema usage. It prints the canonical fingerprint and
-query count without modifying the file.
+The compatibility command adds document/section/sentence resolution, exact
+provenance, all-strategy chunk coverage, detailed unresolved cases, and the final
+PASS/FAIL decision. It is offline and does not run benchmark metrics.
 
 The read-only three-strategy preflight validates the processed corpus, complete
 chunk artifacts, chunk coverage, full embedding artifact hashes, index entries,
@@ -110,7 +110,7 @@ conflict markers:
 export ANSWER_GENERATION_MODEL='PINNED_PRODUCTION_MODEL_ID'
 
 benchmark-preflight \
-  --dataset data/evaluation/angular/canonical_qa_v1.jsonl \
+  --dataset data/evaluation/angular/qa_dataset.jsonl \
   --generation-provider openrouter \
   --generation-model "$ANSWER_GENERATION_MODEL" \
   --require-live-credentials \
@@ -124,7 +124,8 @@ benchmark-preflight \
 Pin the answer model deliberately before production. The repository does not
 choose a research model implicitly.
 
-Current checkout result from the offline default preflight:
+Current dataset compatibility is `FAIL`; therefore do not run the execution
+sequence below. Exact current counts are in the compatibility artifact.
 
 ```text
 PASS    processed corpus (384 documents)
@@ -146,7 +147,7 @@ Run only after strict validation and live preflight pass.
 
 ```bash
 prepare-answer-inputs \
-  --dataset data/evaluation/angular/canonical_qa_v1.jsonl \
+  --dataset data/evaluation/angular/qa_dataset.jsonl \
   --corpus angular \
   --embedding-mode openrouter \
   --protocol same_token_budget \
@@ -206,7 +207,7 @@ generate-answers \
 
 ```bash
 evaluate-answers \
-  --dataset data/evaluation/angular/canonical_qa_v1.jsonl \
+  --dataset data/evaluation/angular/qa_dataset.jsonl \
   --documents data/processed/angular/documents.jsonl \
   --prepared-inputs data/benchmark/angular/canonical_v1/inputs \
   --generation fixed_size=data/benchmark/angular/canonical_v1/generation/fixed_size \

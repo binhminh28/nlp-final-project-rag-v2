@@ -9,11 +9,15 @@ from pathlib import Path
 
 from rag_chunking.benchmark import prepare_answer_benchmark_inputs, project_benchmark_queries
 from rag_chunking.chunking.prompt_config import load_project_dotenv
+from rag_chunking.chunking.writer import read_chunks_jsonl
 from rag_chunking.context import ContextConfig
 from rag_chunking.data.writer import read_documents_jsonl
 from rag_chunking.embedding.config import load_embedding_config
 from rag_chunking.embedding.provider import OpenRouterEmbeddingProvider
-from rag_chunking.evaluation.qa_dataset import validate_canonical_qa_dataset
+from rag_chunking.evaluation.compatibility import audit_dataset_compatibility
+from rag_chunking.evaluation.qa_dataset import (
+    is_team_qa_dataset, validate_canonical_qa_dataset,
+)
 from rag_chunking.retrieval import RetrievalProtocolConfig, RetrievalService
 from rag_chunking.retrieval.protocols import SAME_TOKEN_BUDGET, SAME_TOP_K
 
@@ -38,6 +42,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--embedding-config", type=Path, default=Path("configs/embedding.yaml"))
     parser.add_argument("--processed-root", type=Path, default=Path("data/processed"))
+    parser.add_argument("--raw-root", type=Path, default=Path("data/raw"))
+    parser.add_argument("--chunks-root", type=Path, default=Path("data/chunks"))
     parser.add_argument("--indexes-root", type=Path, default=Path("data/indexes"))
     parser.add_argument("--query-cache", type=Path, default=Path("data/query-embedding-cache"))
     parser.add_argument("--output", type=Path, required=True)
@@ -59,9 +65,32 @@ def main(argv: list[str] | None = None) -> int:
         documents = {item.doc_id: item for item in documents_list}
         if len(documents) != len(documents_list):
             raise ValueError("canonical corpus contains duplicate document IDs")
-        dataset, semantic = validate_canonical_qa_dataset(args.dataset, documents)
-        if not semantic.valid:
-            raise ValueError(f"canonical QA semantic validation failed: {semantic.errors}")
+        if is_team_qa_dataset(args.dataset):
+            chunks = {
+                strategy: read_chunks_jsonl(
+                    args.chunks_root / args.corpus / strategy / "chunks.jsonl"
+                ) for strategy in STRATEGIES
+            }
+            manifests = {
+                strategy: json.loads((
+                    args.chunks_root / args.corpus / strategy / "manifest.json"
+                ).read_text(encoding="utf-8")) for strategy in STRATEGIES
+            }
+            compatibility = audit_dataset_compatibility(
+                dataset_path=args.dataset, documents=documents_list,
+                chunks_by_strategy=chunks, chunk_manifests=manifests,
+                raw_root=args.raw_root / args.corpus,
+            )
+            if not compatibility.passed:
+                raise ValueError(
+                    "benchmark compatibility gate failed: "
+                    + "; ".join(compatibility.report["gate_reasons"])
+                )
+            dataset = compatibility.dataset
+        else:
+            dataset, semantic = validate_canonical_qa_dataset(args.dataset, documents)
+            if not semantic.valid:
+                raise ValueError(f"canonical QA semantic validation failed: {semantic.errors}")
         if args.embedding_mode == "openrouter":
             load_project_dotenv()
             provider = OpenRouterEmbeddingProvider(embedding)

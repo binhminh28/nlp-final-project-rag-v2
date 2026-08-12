@@ -13,7 +13,9 @@ from rag_chunking.benchmark import (
 from rag_chunking.data.writer import read_documents_jsonl
 from rag_chunking.evaluation.answer_models import EvaluationConfig, SUPPORTED_METRICS
 from rag_chunking.evaluation.answer_runner import run_answer_benchmark
-from rag_chunking.evaluation.qa_dataset import validate_canonical_qa_dataset
+from rag_chunking.evaluation.qa_dataset import (
+    is_team_qa_dataset, load_team_qa_dataset, validate_canonical_qa_dataset,
+)
 from rag_chunking.retrieval.models import KNOWN_STRATEGIES
 
 
@@ -58,9 +60,12 @@ def main(argv: list[str] | None = None) -> int:
         by_id = {item.doc_id: item for item in documents}
         if len(by_id) != len(documents):
             raise ValueError("canonical corpus contains duplicate document IDs")
-        dataset, semantic = validate_canonical_qa_dataset(args.dataset, by_id)
-        if not semantic.valid:
-            raise ValueError(f"canonical QA semantic validation failed: {semantic.errors}")
+        if is_team_qa_dataset(args.dataset):
+            dataset = load_team_qa_dataset(args.dataset)
+        else:
+            dataset, semantic = validate_canonical_qa_dataset(args.dataset, by_id)
+            if not semantic.valid:
+                raise ValueError(f"canonical QA semantic validation failed: {semantic.errors}")
         config = EvaluationConfig(enabled_metrics=tuple(args.metrics))
         source_corpus_fingerprint = preparation_fingerprint = None
         if args.prepared_inputs is not None:

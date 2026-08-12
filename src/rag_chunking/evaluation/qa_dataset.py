@@ -13,6 +13,7 @@ from rag_chunking.retrieval.models import normalize_query
 
 
 QA_DATASET_SCHEMA_VERSION = "evidence_qa_dataset_v1"
+TEAM_QA_DATASET_SCHEMA_VERSION = "team_evidence_qa_adapter_v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +58,55 @@ class EvidenceSpec:
 
 
 @dataclass(frozen=True, slots=True)
+class GoldEvidenceItem:
+    """One authored evidence item; document and section identity stay attached."""
+
+    evidence_id: str
+    doc_id: str
+    section_path: list[str]
+    evidence_sentences: list[EvidenceSpec]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.evidence_id, str) or not self.evidence_id.strip():
+            raise ValueError("evidence_id must be non-empty")
+        if not isinstance(self.doc_id, str) or not self.doc_id.strip():
+            raise ValueError("evidence doc_id must be non-empty")
+        if not isinstance(self.section_path, list) or not self.section_path or any(
+            not isinstance(item, str) or not item.strip() for item in self.section_path
+        ):
+            raise ValueError("section_path must be a non-empty list of non-empty strings")
+        if not isinstance(self.evidence_sentences, list) or not self.evidence_sentences:
+            raise ValueError("evidence_sentences must be a non-empty list")
+
+    @classmethod
+    def from_dict(cls, value: object) -> "GoldEvidenceItem":
+        if not isinstance(value, dict):
+            raise ValueError("evidence items must be objects")
+        required = {"evidence_id", "doc_id", "section_path", "evidence_sentences"}
+        missing = sorted(required - set(value))
+        if missing:
+            raise ValueError(f"missing evidence fields: {missing}")
+        unknown = sorted(set(value) - required)
+        if unknown:
+            raise ValueError(f"unknown evidence fields: {unknown}")
+        sentences = value["evidence_sentences"]
+        if not isinstance(sentences, list):
+            raise ValueError("evidence_sentences must be a list")
+        return cls(
+            evidence_id=value["evidence_id"], doc_id=value["doc_id"],
+            section_path=value["section_path"],
+            evidence_sentences=[EvidenceSpec.from_value(item) for item in sentences],
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "evidence_id": self.evidence_id, "doc_id": self.doc_id,
+            "section_path": list(self.section_path),
+            "evidence_sentences": [item.to_external_value() for item in self.evidence_sentences],
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class QARecord:
     id: str
     doc_id: str
@@ -67,6 +117,9 @@ class QARecord:
     question_type: str
     difficulty: str
     notes: str | None = None
+    reasoning_type: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    evidence: list[GoldEvidenceItem] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if not isinstance(self.id, str) or not self.id or any(ch.isspace() for ch in self.id):
@@ -88,6 +141,14 @@ class QARecord:
             raise ValueError("difficulty must be non-empty")
         if self.notes is not None and not isinstance(self.notes, str):
             raise ValueError("notes must be null or a string")
+        if self.reasoning_type is not None and (
+            not isinstance(self.reasoning_type, str) or not self.reasoning_type.strip()
+        ):
+            raise ValueError("reasoning_type must be null or a non-empty string")
+        if not isinstance(self.metadata, dict):
+            raise ValueError("metadata must be an object")
+        if not isinstance(self.evidence, list):
+            raise ValueError("evidence must be a list")
 
     @classmethod
     def from_dict(cls, value: dict[str, Any], *, require_answer: bool = True) -> "QARecord":
@@ -99,7 +160,7 @@ class QARecord:
         missing = sorted(required - set(value))
         if missing:
             raise ValueError(f"missing QA fields: {missing}")
-        allowed = required | {"answer", "notes"}
+        allowed = required | {"answer", "notes", "reasoning_type", "metadata", "evidence"}
         unknown = sorted(set(value) - allowed)
         if unknown:
             raise ValueError(f"unknown QA fields: {unknown}")
@@ -111,11 +172,23 @@ class QARecord:
         if not isinstance(raw_evidence, list):
             raise ValueError("evidence_sentences must be a list")
         data["evidence_sentences"] = [EvidenceSpec.from_value(item) for item in raw_evidence]
+        raw_items = data.get("evidence", [])
+        if not isinstance(raw_items, list):
+            raise ValueError("evidence must be a list")
+        data["evidence"] = [GoldEvidenceItem.from_dict(item) for item in raw_items]
         return cls(**data)
 
     def to_dict(self) -> dict[str, Any]:
         value = asdict(self)
         value["evidence_sentences"] = [item.to_external_value() for item in self.evidence_sentences]
+        if self.evidence:
+            value["evidence"] = [item.to_dict() for item in self.evidence]
+        else:
+            value.pop("evidence")
+        if self.reasoning_type is None:
+            value.pop("reasoning_type")
+        if not self.metadata:
+            value.pop("metadata")
         return value
 
 
@@ -174,13 +247,97 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 def qa_dataset_fingerprint(
     records: list[QARecord], *, schema_version: str = QA_DATASET_SCHEMA_VERSION,
 ) -> str:
-    if schema_version != QA_DATASET_SCHEMA_VERSION:
+    if schema_version not in {QA_DATASET_SCHEMA_VERSION, TEAM_QA_DATASET_SCHEMA_VERSION}:
         raise ValueError(f"unsupported QA dataset schema {schema_version!r}")
     ordered = sorted(records, key=lambda record: record.id)
-    return canonical_fingerprint({
+    identity = {
         "schema_version": schema_version,
         "records": [record.to_dict() for record in ordered],
-    })
+    }
+    if schema_version == TEAM_QA_DATASET_SCHEMA_VERSION:
+        identity["adapter_version"] = TEAM_QA_DATASET_SCHEMA_VERSION
+    return canonical_fingerprint(identity)
+
+
+def adapt_team_qa_record(value: dict[str, Any]) -> QARecord:
+    """Adapt the immutable team schema without flattening structured evidence."""
+
+    if not isinstance(value, dict):
+        raise ValueError("QA record must be an object")
+    required = {
+        "question_id", "question", "reference_answer", "difficulty",
+        "question_type", "reasoning_type", "evidence", "metadata",
+    }
+    missing = sorted(required - set(value))
+    if missing:
+        raise ValueError(f"missing team QA fields: {missing}")
+    unknown = sorted(set(value) - required)
+    if unknown:
+        raise ValueError(f"unknown team QA fields: {unknown}")
+    if not isinstance(value["reference_answer"], str) or not value["reference_answer"].strip():
+        raise ValueError("answer must be non-empty")
+    evidence = value["evidence"]
+    if not isinstance(evidence, list) or not evidence:
+        raise ValueError("evidence must be a non-empty list")
+    items = [GoldEvidenceItem.from_dict(item) for item in evidence]
+    evidence_ids = [item.evidence_id for item in items]
+    if len(evidence_ids) != len(set(evidence_ids)):
+        raise ValueError("record contains duplicate evidence_id values")
+    metadata = value["metadata"]
+    if not isinstance(metadata, dict):
+        raise ValueError("metadata must be an object")
+    expected_metadata = {
+        "evidence_scope", "num_evidence", "semantic_competition",
+        "content_type", "answerable_from_evidence",
+    }
+    missing_metadata = sorted(expected_metadata - set(metadata))
+    if missing_metadata:
+        raise ValueError(f"missing metadata fields: {missing_metadata}")
+    unknown_metadata = sorted(set(metadata) - expected_metadata)
+    if unknown_metadata:
+        raise ValueError(f"unknown metadata fields: {unknown_metadata}")
+    if type(metadata["num_evidence"]) is not int or metadata["num_evidence"] != len(items):
+        raise ValueError("metadata.num_evidence does not match evidence length")
+    if not isinstance(metadata["evidence_scope"], str) or not metadata["evidence_scope"].strip():
+        raise ValueError("metadata.evidence_scope must be non-empty")
+    if not isinstance(metadata["content_type"], str) or not metadata["content_type"].strip():
+        raise ValueError("metadata.content_type must be non-empty")
+    for name in ("semantic_competition", "answerable_from_evidence"):
+        if type(metadata[name]) is not bool:
+            raise ValueError(f"metadata.{name} must be boolean")
+    return QARecord(
+        id=value["question_id"], doc_id=items[0].doc_id,
+        question=value["question"], answer=value["reference_answer"],
+        evidence_sentences=[], evidence_sections=[],
+        question_type=value["question_type"], difficulty=value["difficulty"],
+        reasoning_type=value["reasoning_type"], metadata=dict(metadata), evidence=items,
+    )
+
+
+def load_team_qa_dataset(path: Path) -> QADataset:
+    records: list[QARecord] = []
+    for index, raw in enumerate(_read_records(path), 1):
+        try:
+            records.append(adapt_team_qa_record(raw))
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"Invalid team QA record at {path}:{index}: {error}") from error
+    if not records:
+        raise ValueError("QA dataset is empty")
+    ids = [record.id for record in records]
+    if len(ids) != len(set(ids)):
+        raise ValueError("QA dataset contains duplicate question_id values")
+    ordered = sorted(records, key=lambda record: record.id)
+    return QADataset(
+        ordered, qa_dataset_fingerprint(ordered, schema_version=TEAM_QA_DATASET_SCHEMA_VERSION),
+        TEAM_QA_DATASET_SCHEMA_VERSION,
+    )
+
+
+def is_team_qa_dataset(path: Path) -> bool:
+    """Identify the explicit team contract; never select by filename."""
+
+    records = _read_records(path)
+    return bool(records and isinstance(records[0], dict) and "question_id" in records[0])
 
 
 def load_qa_dataset(

@@ -39,6 +39,7 @@ analyze-experiment-uncertainty = "rag_chunking.cli.analyze_experiment_uncertaint
 generate-answers = "rag_chunking.cli.generate_answers:main"
 evaluate-answers = "rag_chunking.cli.evaluate_answers:main"
 validate-qa-dataset = "rag_chunking.cli.validate_qa_dataset:main"
+audit-dataset-compatibility = "rag_chunking.cli.audit_dataset_compatibility:main"
 prepare-answer-inputs = "rag_chunking.cli.prepare_answer_inputs:main"
 benchmark-preflight = "rag_chunking.cli.benchmark_preflight:main"
 

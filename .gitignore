@@ -24,6 +24,14 @@ data/processed/angular/*.jsonl
 !/data/evaluation/angular/
 /data/evaluation/angular/*
 !/data/evaluation/angular/canonical_qa_v1.jsonl
+!/data/evaluation/angular/qa_dataset.jsonl
+!/data/evaluation/angular/compatibility/
+!/data/evaluation/angular/compatibility/qa_dataset/
+!/data/evaluation/angular/compatibility/qa_dataset/compatibility_report.json
+!/data/evaluation/angular/compatibility/qa_dataset/unresolved_cases.jsonl
+!/data/evaluation/angular/compatibility/qa_dataset/evidence_chunk_mappings.jsonl
+!/data/evaluation/angular/compatibility/qa_dataset/DATASET_COMPATIBILITY_AUDIT.md
+!/data/evaluation/angular/compatibility/qa_dataset/manifest.json
 
 # Environment files
 .env

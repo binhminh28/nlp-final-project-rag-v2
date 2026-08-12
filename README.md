@@ -1,6 +1,6 @@
 # Structure-Aware Chunking for RAG
 
-This repository compares chunking strategies for an Angular technical-document corpus. Code, tests, configuration, and committed artifacts are authoritative. The final evidence-aware QA benchmark is **not yet executed** because the teammate-owned canonical QA dataset has not been delivered.
+This repository compares chunking strategies for an Angular technical-document corpus. Code, tests, configuration, and committed artifacts are authoritative. The final evidence-aware QA benchmark is **not yet executed** because the delivered team dataset has not passed the strict evidence-to-chunk compatibility gate.
 
 ## Current Status
 
@@ -153,16 +153,32 @@ BM25, hybrid, query-rewrite, diversity, and dense-depth commands in `rag_chunkin
 
 ### Evidence-aware retrieval
 
-The evidence evaluator maps source-grounded QA evidence to chunks and reports `evidence_coverage` plus `all_evidence_retrieved_rate` (macro aggregate). It supports both selection protocols. These are the appropriate final retrieval diagnostics once canonical QA data exists; no final evidence-aware result currently exists.
+The evidence evaluator maps source-grounded QA evidence to chunks and reports `evidence_coverage` plus `all_evidence_retrieved_rate` (macro aggregate). It supports both selection protocols. The real dataset must pass the compatibility gate below before this evaluator may run; no result from that dataset exists yet.
 
 ```bash
 evaluate-evidence-retrieval --corpus angular \
-  --dataset data/evaluation/angular/canonical_qa_v1.jsonl --plan-only
+  --dataset data/evaluation/angular/qa_dataset.jsonl --plan-only
 ```
 
 ## Canonical QA Dataset and Final-Benchmark Readiness
 
-The production contract is `evidence_qa_dataset_v1`, expected at `data/evaluation/angular/canonical_qa_v1.jsonl`. It is teammate-owned and absent in the current checkout. The loader accepts JSONL (or a JSON array) and requires:
+The team-provided gold dataset is the immutable upstream file `data/evaluation/angular/qa_dataset.jsonl`. Its `question_id`, `question`, and `reference_answer` fields adapt to canonical `id`, `question`, and `answer`; `difficulty`, `question_type`, `reasoning_type`, and all metadata are retained. Each nested evidence item remains attached to its `evidence_id`, document, section path, and sentence list, including cross-document questions. The adapter schema is `team_evidence_qa_adapter_v1`; it does not rewrite the source file.
+
+The earlier `evidence_qa_dataset_v1` single-document contract remains supported for synthetic/development fixtures, but it is not the real team benchmark. The historical `baseline_v1.jsonl` is a 64-query source-level retrieval diagnostic and likewise is not the real benchmark.
+
+Run the offline gate explicitly:
+
+```bash
+audit-dataset-compatibility \
+  --dataset data/evaluation/angular/qa_dataset.jsonl \
+  --output data/evaluation/angular/compatibility/qa_dataset
+```
+
+Document IDs first require exact canonical identity (the real IDs already match `angular:<relative_path>`). A missing namespace may only be added through the unique, explicit `source + relative_path` transformation; filename-only and fuzzy matches are forbidden. Sections use exact path/suffix matching, then NFKC/case/whitespace plus Markdown heading-delimiter normalization. Evidence uses exact block text, then deterministic NFKC/case/whitespace and rendered-Markdown normalization with exact source offsets. Chunk relevance comes only from those offsets and committed unified-chunk provenance.
+
+The strict gate passes only when every schema field, document, section, evidence sentence, and evidence item resolves uniquely and maps completely for every selected strategy, with valid corpus/chunk lineage. Failures are never dropped. Machine-readable reports and the detailed unresolved list are under `data/evaluation/angular/compatibility/qa_dataset/`.
+
+The legacy loader contract accepts:
 
 ```text
 id, doc_id, question, answer, evidence_sentences, evidence_sections,
@@ -177,7 +193,7 @@ QA record -> retrieval: id + question
           -> evaluation: answer/evidence/category/difficulty metadata
 ```
 
-The final production benchmark cannot run until this dataset arrives. Test fixtures are development plumbing only and must not be used for research results. Details, validation, preflight, and the eventual sequence are in [FINAL_BENCHMARK_HANDOFF.md](FINAL_BENCHMARK_HANDOFF.md).
+The real benchmark remains closed until the compatibility report says `PASS`. Test fixtures are development plumbing only and must not be used for research results. Details are in [FINAL_BENCHMARK_HANDOFF.md](FINAL_BENCHMARK_HANDOFF.md).
 
 ## Context Construction and Generation
 
@@ -219,11 +235,12 @@ chunk-fixed --input data/processed/angular/documents.jsonl --output data/chunks/
 chunk-structure --input data/processed/angular/documents.jsonl --output data/chunks/angular/structure_aware
 chunk-prompt --input data/processed/angular/documents.jsonl --output data/chunks/angular/prompt_based --cache data/chunks/angular/prompt_based/cache
 evaluate-retrieval --corpus angular --dataset data/evaluation/angular/baseline_v1.jsonl --plan-only
-validate-qa-dataset --dataset data/evaluation/angular/canonical_qa_v1.jsonl --documents data/processed/angular/documents.jsonl
+validate-qa-dataset --dataset data/evaluation/angular/qa_dataset.jsonl --documents data/processed/angular/documents.jsonl
+audit-dataset-compatibility --dataset data/evaluation/angular/qa_dataset.jsonl
 benchmark-preflight
-prepare-answer-inputs --dataset data/evaluation/angular/canonical_qa_v1.jsonl --output <inputs-dir>
+prepare-answer-inputs --dataset data/evaluation/angular/qa_dataset.jsonl --output <inputs-dir>
 generate-answers --input <inputs.jsonl> --output <generation-dir> --cache <cache-dir>
-evaluate-answers --dataset data/evaluation/angular/canonical_qa_v1.jsonl --documents data/processed/angular/documents.jsonl --prepared-inputs <inputs-dir> --generation fixed_size=<dir> --generation structure_aware=<dir> --generation prompt_based=<dir> --output <evaluation-dir>
+evaluate-answers --dataset data/evaluation/angular/qa_dataset.jsonl --documents data/processed/angular/documents.jsonl --prepared-inputs <inputs-dir> --generation fixed_size=<dir> --generation structure_aware=<dir> --generation prompt_based=<dir> --output <evaluation-dir>
 ```
 
 `prepare-answer-inputs` defaults to `cache_only` embedding mode to avoid accidental network/API use; use `--embedding-mode openrouter` only for an approved production run. Use each command's `--help` and the linked handoff documents before any credentialed or regenerating operation.

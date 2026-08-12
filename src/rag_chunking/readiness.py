@@ -21,8 +21,9 @@ from rag_chunking.embedding.models import (
 )
 from rag_chunking.evaluation.answer_models import EvaluationConfig
 from rag_chunking.evaluation.qa_dataset import (
-    QA_DATASET_SCHEMA_VERSION, validate_canonical_qa_dataset,
+    QA_DATASET_SCHEMA_VERSION, is_team_qa_dataset, validate_canonical_qa_dataset,
 )
+from rag_chunking.evaluation.compatibility import audit_dataset_compatibility
 from rag_chunking.generation import GenerationConfig
 from rag_chunking.retrieval import RetrievalProtocolConfig
 
@@ -178,6 +179,7 @@ def _validate_strategy(
 def run_benchmark_preflight(
     *, dataset_path: Path, corpus: str = "angular",
     processed_root: Path = Path("data/processed"),
+    raw_root: Path = Path("data/raw"),
     chunks_root: Path = Path("data/chunks"),
     embeddings_root: Path = Path("data/embeddings"),
     indexes_root: Path = Path("data/indexes"),
@@ -260,15 +262,52 @@ def run_benchmark_preflight(
         ))
     elif by_id:
         try:
-            dataset, report = validate_canonical_qa_dataset(dataset_path, by_id)
-            if not report.valid:
-                raise ValueError("; ".join(report.errors))
+            if is_team_qa_dataset(dataset_path):
+                compatibility = audit_dataset_compatibility(
+                    dataset_path=dataset_path, documents=list(by_id.values()),
+                    chunks_by_strategy={
+                        strategy: read_chunks_jsonl(
+                            chunks_root / corpus / strategy / "chunks.jsonl"
+                        ) for strategy in CANONICAL_STRATEGIES
+                    },
+                    chunk_manifests={
+                        strategy: _load_object(
+                            chunks_root / corpus / strategy / "manifest.json"
+                        ) for strategy in CANONICAL_STRATEGIES
+                    },
+                    raw_root=raw_root / corpus,
+                )
+                dataset = compatibility.dataset
+                if not compatibility.passed:
+                    raise ValueError(
+                        "dataset compatibility gate failed: "
+                        + "; ".join(compatibility.report["gate_reasons"])
+                    )
+                report_warnings = [
+                    message
+                    for item in compatibility.report["warnings"]
+                    for message in item["messages"]
+                ]
+                details = {
+                    "queries": len(dataset.records), "fingerprint": dataset.fingerprint,
+                    "schema_version": dataset.schema_version,
+                    "compatibility_fingerprint": compatibility.report["compatibility_fingerprint"],
+                    "warnings": report_warnings,
+                }
+            else:
+                dataset, report = validate_canonical_qa_dataset(dataset_path, by_id)
+                if not report.valid:
+                    raise ValueError("; ".join(report.errors))
+                report_warnings = report.warnings
+                details = {
+                    "queries": len(dataset.records), "fingerprint": dataset.fingerprint,
+                    "schema_version": dataset.schema_version, "warnings": report_warnings,
+                }
             checks.append(ReadinessCheck(
                 "canonical_qa_dataset", "PASS", "Canonical QA dataset is valid.",
-                {"queries": len(dataset.records), "fingerprint": dataset.fingerprint,
-                 "schema_version": dataset.schema_version, "warnings": report.warnings},
+                details,
             ))
-            warnings.extend(report.warnings)
+            warnings.extend(report_warnings)
         except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as error:
             blockers.append(f"Canonical QA dataset invalid: {error}")
             checks.append(ReadinessCheck("canonical_qa_dataset", "BLOCKED", str(error), {}))

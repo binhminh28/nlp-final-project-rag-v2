@@ -1,0 +1,1225 @@
+{
+  "adapter_version": "team_evidence_qa_adapter_v1",
+  "breakdown": {
+    "difficulty": {
+      "easy": {
+        "compatible": 49,
+        "total": 60
+      },
+      "hard": {
+        "compatible": 16,
+        "total": 40
+      },
+      "medium": {
+        "compatible": 27,
+        "total": 40
+      }
+    },
+    "evidence_scope": {
+      "cross_document": {
+        "compatible": 4,
+        "total": 12
+      },
+      "cross_section": {
+        "compatible": 12,
+        "total": 29
+      },
+      "single_section": {
+        "compatible": 76,
+        "total": 99
+      }
+    },
+    "question_type": {
+      "behavior": {
+        "compatible": 20,
+        "total": 22
+      },
+      "cause_effect": {
+        "compatible": 0,
+        "total": 2
+      },
+      "comparison": {
+        "compatible": 14,
+        "total": 26
+      },
+      "definition": {
+        "compatible": 13,
+        "total": 15
+      },
+      "fact": {
+        "compatible": 18,
+        "total": 21
+      },
+      "list": {
+        "compatible": 3,
+        "total": 4
+      },
+      "mechanism": {
+        "compatible": 3,
+        "total": 7
+      },
+      "procedure": {
+        "compatible": 8,
+        "total": 11
+      },
+      "security_mechanism": {
+        "compatible": 0,
+        "total": 1
+      },
+      "sequence": {
+        "compatible": 2,
+        "total": 3
+      },
+      "syntax": {
+        "compatible": 0,
+        "total": 1
+      },
+      "synthesis": {
+        "compatible": 2,
+        "total": 2
+      },
+      "tradeoff": {
+        "compatible": 3,
+        "total": 10
+      },
+      "why": {
+        "compatible": 6,
+        "total": 15
+      }
+    },
+    "reasoning_type": {
+      "api_design_reasoning": {
+        "compatible": 0,
+        "total": 1
+      },
+      "behavioral_comparison": {
+        "compatible": 1,
+        "total": 1
+      },
+      "cause_effect": {
+        "compatible": 2,
+        "total": 3
+      },
+      "comparison": {
+        "compatible": 8,
+        "total": 14
+      },
+      "context_reasoning": {
+        "compatible": 0,
+        "total": 1
+      },
+      "cross_api_comparison": {
+        "compatible": 0,
+        "total": 1
+      },
+      "cross_api_synthesis": {
+        "compatible": 1,
+        "total": 1
+      },
+      "cross_document_synthesis": {
+        "compatible": 4,
+        "total": 11
+      },
+      "cross_section_synthesis": {
+        "compatible": 1,
+        "total": 6
+      },
+      "decision_reasoning": {
+        "compatible": 1,
+        "total": 1
+      },
+      "hierarchical_reasoning": {
+        "compatible": 1,
+        "total": 1
+      },
+      "multi_axis_comparison": {
+        "compatible": 1,
+        "total": 1
+      },
+      "multi_fact_synthesis": {
+        "compatible": 17,
+        "total": 23
+      },
+      "multi_step_synthesis": {
+        "compatible": 0,
+        "total": 1
+      },
+      "ordered_synthesis": {
+        "compatible": 1,
+        "total": 2
+      },
+      "ownership_reasoning": {
+        "compatible": 0,
+        "total": 1
+      },
+      "scope_reasoning": {
+        "compatible": 0,
+        "total": 1
+      },
+      "single_fact": {
+        "compatible": 49,
+        "total": 60
+      },
+      "state_comparison": {
+        "compatible": 1,
+        "total": 1
+      },
+      "state_propagation": {
+        "compatible": 0,
+        "total": 1
+      },
+      "state_transition": {
+        "compatible": 2,
+        "total": 3
+      },
+      "stateful_reasoning": {
+        "compatible": 0,
+        "total": 1
+      },
+      "structural_reasoning": {
+        "compatible": 0,
+        "total": 1
+      },
+      "temporal_synthesis": {
+        "compatible": 1,
+        "total": 1
+      },
+      "timing_reasoning": {
+        "compatible": 1,
+        "total": 1
+      },
+      "version_consistency": {
+        "compatible": 0,
+        "total": 1
+      }
+    }
+  },
+  "chunk_artifact_fingerprints": {
+    "fixed_size": "49352fe74e9118b44c545b2d9e86c3bbd7dcb695259eb059b7f5b23dd6989b1a",
+    "prompt_based": "a2172064f7bd0a8567ab4a7517f4224193f8257bb41c5f64db58eadf50054b83",
+    "structure_aware": "896b0c0d568d0431b54459fb6657d0de72f679d5d269adf68dffb05a4528d355"
+  },
+  "chunk_mapping": {
+    "fixed_size": {
+      "artifact_errors": [],
+      "compatible_questions": 92,
+      "mapped_evidence": 190,
+      "total_evidence": 233,
+      "unmapped_evidence": 43
+    },
+    "prompt_based": {
+      "artifact_errors": [],
+      "compatible_questions": 92,
+      "mapped_evidence": 190,
+      "total_evidence": 233,
+      "unmapped_evidence": 43
+    },
+    "structure_aware": {
+      "artifact_errors": [],
+      "compatible_questions": 92,
+      "mapped_evidence": 190,
+      "total_evidence": 233,
+      "unmapped_evidence": 43
+    }
+  },
+  "compatibility_fingerprint": "fc8c04cbd40bb33ffdd5b6141cfc1990c5307c3d0f951a24d630919116fd5019",
+  "compatible_question_count": 92,
+  "corpus_fingerprint": "44ec8ae894520ecad7fd5ea177dedc785949ff9a6ce8ac0b69ce26f133563dad",
+  "corpus_integrity_errors": [],
+  "dataset_audit": {
+    "distributions": {
+      "difficulty": {
+        "easy": 60,
+        "hard": 40,
+        "medium": 40
+      },
+      "evidence_count": {
+        "1": 60,
+        "2": 67,
+        "3": 13
+      },
+      "evidence_scope": {
+        "cross_document": 12,
+        "cross_section": 29,
+        "single_section": 99
+      },
+      "question_type": {
+        "behavior": 22,
+        "cause_effect": 2,
+        "comparison": 26,
+        "definition": 15,
+        "fact": 21,
+        "list": 4,
+        "mechanism": 7,
+        "procedure": 11,
+        "security_mechanism": 1,
+        "sequence": 3,
+        "syntax": 1,
+        "synthesis": 2,
+        "tradeoff": 10,
+        "why": 15
+      },
+      "reasoning_type": {
+        "api_design_reasoning": 1,
+        "behavioral_comparison": 1,
+        "cause_effect": 3,
+        "comparison": 14,
+        "context_reasoning": 1,
+        "cross_api_comparison": 1,
+        "cross_api_synthesis": 1,
+        "cross_document_synthesis": 11,
+        "cross_section_synthesis": 6,
+        "decision_reasoning": 1,
+        "hierarchical_reasoning": 1,
+        "multi_axis_comparison": 1,
+        "multi_fact_synthesis": 23,
+        "multi_step_synthesis": 1,
+        "ordered_synthesis": 2,
+        "ownership_reasoning": 1,
+        "scope_reasoning": 1,
+        "single_fact": 60,
+        "state_comparison": 1,
+        "state_propagation": 1,
+        "state_transition": 3,
+        "stateful_reasoning": 1,
+        "structural_reasoning": 1,
+        "temporal_synthesis": 1,
+        "timing_reasoning": 1,
+        "version_consistency": 1
+      }
+    },
+    "duplicate_question_ids": [],
+    "empty_required_fields": {
+      "difficulty": 0,
+      "evidence": 0,
+      "metadata": 0,
+      "question": 0,
+      "question_id": 0,
+      "question_type": 0,
+      "reasoning_type": 0,
+      "reference_answer": 0
+    },
+    "evidence_item_count": 233,
+    "evidence_sentence_count": 349,
+    "field_presence": {
+      "difficulty": 140,
+      "evidence": 140,
+      "metadata": 140,
+      "question": 140,
+      "question_id": 140,
+      "question_type": 140,
+      "reasoning_type": 140,
+      "reference_answer": 140
+    },
+    "malformed_evidence_objects": 0,
+    "metadata_num_evidence_mismatches": 0,
+    "record_count": 140,
+    "unique_referenced_documents": 55,
+    "unknown_evidence_fields": [],
+    "unknown_fields": [],
+    "unknown_metadata_fields": []
+  },
+  "dataset_fingerprint": "cea4e11d87a353b084b73f95b231bf7c41a1a2c651312295ffe5bcb2a0bd03b6",
+  "dataset_path": "data/evaluation/angular/qa_dataset.jsonl",
+  "dataset_schema_version": "team_evidence_qa_adapter_v1",
+  "document_resolution": {
+    "ambiguous": 0,
+    "invalid": 0,
+    "resolved": 233,
+    "unresolved": 0
+  },
+  "evidence_chunk_mappings_fingerprint": "ea685c45cdc333a132eb611afd38944343e0a0465d3b6b727143ea06445eb05a",
+  "evidence_item_count": 233,
+  "evidence_sentence_count": 349,
+  "evidence_sentence_resolution": {
+    "ambiguous": 0,
+    "exact": 205,
+    "invalid": 0,
+    "normalized_exact": 93,
+    "unresolved": 51
+  },
+  "failure_root_cause_counts": {
+    "ambiguous_section_mapping": 4,
+    "corpus_version_mismatch": 43,
+    "evidence_text_normalization_issue": 8,
+    "section_path_mismatch": 13
+  },
+  "gate_decision": "FAIL",
+  "gate_policy_version": "strict_all_required_evidence_all_strategies_v1",
+  "gate_reasons": [
+    "one or more section paths do not resolve uniquely",
+    "one or more evidence sentences do not resolve uniquely",
+    "one or more evidence items do not map to every chunk strategy"
+  ],
+  "incompatible_question_count": 48,
+  "incompatible_question_ids": [
+    "q_easy_005",
+    "q_easy_011",
+    "q_easy_019",
+    "q_easy_020",
+    "q_easy_023",
+    "q_easy_028",
+    "q_easy_029",
+    "q_easy_033",
+    "q_easy_050",
+    "q_easy_051",
+    "q_easy_053",
+    "q_hard_001",
+    "q_hard_004",
+    "q_hard_007",
+    "q_hard_008",
+    "q_hard_011",
+    "q_hard_012",
+    "q_hard_014",
+    "q_hard_019",
+    "q_hard_020",
+    "q_hard_021",
+    "q_hard_022",
+    "q_hard_023",
+    "q_hard_024",
+    "q_hard_027",
+    "q_hard_029",
+    "q_hard_031",
+    "q_hard_032",
+    "q_hard_033",
+    "q_hard_035",
+    "q_hard_036",
+    "q_hard_037",
+    "q_hard_038",
+    "q_hard_039",
+    "q_hard_040",
+    "q_medium_002",
+    "q_medium_006",
+    "q_medium_012",
+    "q_medium_013",
+    "q_medium_014",
+    "q_medium_018",
+    "q_medium_020",
+    "q_medium_021",
+    "q_medium_022",
+    "q_medium_026",
+    "q_medium_032",
+    "q_medium_033",
+    "q_medium_034"
+  ],
+  "invalid_question_count": 0,
+  "question_count": 140,
+  "question_status": {
+    "q_easy_001": "compatible",
+    "q_easy_002": "compatible",
+    "q_easy_003": "compatible_with_warning",
+    "q_easy_004": "compatible",
+    "q_easy_005": "incompatible",
+    "q_easy_006": "compatible_with_warning",
+    "q_easy_007": "compatible_with_warning",
+    "q_easy_008": "compatible",
+    "q_easy_009": "compatible",
+    "q_easy_010": "compatible_with_warning",
+    "q_easy_011": "incompatible",
+    "q_easy_012": "compatible_with_warning",
+    "q_easy_013": "compatible",
+    "q_easy_014": "compatible_with_warning",
+    "q_easy_015": "compatible_with_warning",
+    "q_easy_016": "compatible_with_warning",
+    "q_easy_017": "compatible",
+    "q_easy_018": "compatible",
+    "q_easy_019": "incompatible",
+    "q_easy_020": "incompatible",
+    "q_easy_021": "compatible",
+    "q_easy_022": "compatible_with_warning",
+    "q_easy_023": "incompatible",
+    "q_easy_024": "compatible",
+    "q_easy_025": "compatible_with_warning",
+    "q_easy_026": "compatible",
+    "q_easy_027": "compatible",
+    "q_easy_028": "incompatible",
+    "q_easy_029": "incompatible",
+    "q_easy_030": "compatible",
+    "q_easy_031": "compatible",
+    "q_easy_032": "compatible",
+    "q_easy_033": "incompatible",
+    "q_easy_034": "compatible_with_warning",
+    "q_easy_035": "compatible_with_warning",
+    "q_easy_036": "compatible_with_warning",
+    "q_easy_037": "compatible_with_warning",
+    "q_easy_038": "compatible_with_warning",
+    "q_easy_039": "compatible_with_warning",
+    "q_easy_040": "compatible",
+    "q_easy_041": "compatible_with_warning",
+    "q_easy_042": "compatible_with_warning",
+    "q_easy_043": "compatible_with_warning",
+    "q_easy_044": "compatible",
+    "q_easy_045": "compatible",
+    "q_easy_046": "compatible_with_warning",
+    "q_easy_047": "compatible_with_warning",
+    "q_easy_048": "compatible_with_warning",
+    "q_easy_049": "compatible",
+    "q_easy_050": "incompatible",
+    "q_easy_051": "incompatible",
+    "q_easy_052": "compatible_with_warning",
+    "q_easy_053": "incompatible",
+    "q_easy_054": "compatible_with_warning",
+    "q_easy_055": "compatible_with_warning",
+    "q_easy_056": "compatible_with_warning",
+    "q_easy_057": "compatible_with_warning",
+    "q_easy_058": "compatible",
+    "q_easy_059": "compatible_with_warning",
+    "q_easy_060": "compatible_with_warning",
+    "q_hard_001": "incompatible",
+    "q_hard_002": "compatible_with_warning",
+    "q_hard_003": "compatible_with_warning",
+    "q_hard_004": "incompatible",
+    "q_hard_005": "compatible",
+    "q_hard_006": "compatible_with_warning",
+    "q_hard_007": "incompatible",
+    "q_hard_008": "incompatible",
+    "q_hard_009": "compatible_with_warning",
+    "q_hard_010": "compatible_with_warning",
+    "q_hard_011": "incompatible",
+    "q_hard_012": "incompatible",
+    "q_hard_013": "compatible",
+    "q_hard_014": "incompatible",
+    "q_hard_015": "compatible_with_warning",
+    "q_hard_016": "compatible_with_warning",
+    "q_hard_017": "compatible_with_warning",
+    "q_hard_018": "compatible_with_warning",
+    "q_hard_019": "incompatible",
+    "q_hard_020": "incompatible",
+    "q_hard_021": "incompatible",
+    "q_hard_022": "incompatible",
+    "q_hard_023": "incompatible",
+    "q_hard_024": "incompatible",
+    "q_hard_025": "compatible_with_warning",
+    "q_hard_026": "compatible_with_warning",
+    "q_hard_027": "incompatible",
+    "q_hard_028": "compatible_with_warning",
+    "q_hard_029": "incompatible",
+    "q_hard_030": "compatible_with_warning",
+    "q_hard_031": "incompatible",
+    "q_hard_032": "incompatible",
+    "q_hard_033": "incompatible",
+    "q_hard_034": "compatible_with_warning",
+    "q_hard_035": "incompatible",
+    "q_hard_036": "incompatible",
+    "q_hard_037": "incompatible",
+    "q_hard_038": "incompatible",
+    "q_hard_039": "incompatible",
+    "q_hard_040": "incompatible",
+    "q_medium_001": "compatible_with_warning",
+    "q_medium_002": "incompatible",
+    "q_medium_003": "compatible_with_warning",
+    "q_medium_004": "compatible_with_warning",
+    "q_medium_005": "compatible_with_warning",
+    "q_medium_006": "incompatible",
+    "q_medium_007": "compatible",
+    "q_medium_008": "compatible",
+    "q_medium_009": "compatible",
+    "q_medium_010": "compatible_with_warning",
+    "q_medium_011": "compatible_with_warning",
+    "q_medium_012": "incompatible",
+    "q_medium_013": "incompatible",
+    "q_medium_014": "incompatible",
+    "q_medium_015": "compatible_with_warning",
+    "q_medium_016": "compatible_with_warning",
+    "q_medium_017": "compatible_with_warning",
+    "q_medium_018": "incompatible",
+    "q_medium_019": "compatible_with_warning",
+    "q_medium_020": "incompatible",
+    "q_medium_021": "incompatible",
+    "q_medium_022": "incompatible",
+    "q_medium_023": "compatible_with_warning",
+    "q_medium_024": "compatible",
+    "q_medium_025": "compatible_with_warning",
+    "q_medium_026": "incompatible",
+    "q_medium_027": "compatible_with_warning",
+    "q_medium_028": "compatible_with_warning",
+    "q_medium_029": "compatible_with_warning",
+    "q_medium_030": "compatible_with_warning",
+    "q_medium_031": "compatible",
+    "q_medium_032": "incompatible",
+    "q_medium_033": "incompatible",
+    "q_medium_034": "incompatible",
+    "q_medium_035": "compatible",
+    "q_medium_036": "compatible_with_warning",
+    "q_medium_037": "compatible_with_warning",
+    "q_medium_038": "compatible_with_warning",
+    "q_medium_039": "compatible",
+    "q_medium_040": "compatible_with_warning"
+  },
+  "schema_version": "dataset_chunk_compatibility_v1",
+  "section_resolution": {
+    "ambiguous": 4,
+    "invalid": 0,
+    "resolved": 216,
+    "unresolved": 13
+  },
+  "unique_referenced_documents": 55,
+  "unresolved_case_count": 68,
+  "unresolved_cases_fingerprint": "36afa6980944180422f070211f39b8fefe3d26574d6ce0754bdc9a83d7b2913d",
+  "valid_question_count": 140,
+  "warnings": [
+    {
+      "messages": [],
+      "question_id": "q_easy_001"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_002"
+    },
+    {
+      "messages": [
+        "q_easy_003_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_003"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_004"
+    },
+    {
+      "messages": [
+        "q_easy_006_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_006"
+    },
+    {
+      "messages": [
+        "q_easy_007_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_007"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_008"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_009"
+    },
+    {
+      "messages": [
+        "q_easy_010_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_010"
+    },
+    {
+      "messages": [
+        "q_easy_012_e01 sentence 1: normalized exact match",
+        "q_easy_012_e01 sentence 3: normalized exact match"
+      ],
+      "question_id": "q_easy_012"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_013"
+    },
+    {
+      "messages": [
+        "q_easy_014_e01 sentence 0: normalized exact match",
+        "q_easy_014_e01: normalized section match"
+      ],
+      "question_id": "q_easy_014"
+    },
+    {
+      "messages": [
+        "q_easy_015_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_015"
+    },
+    {
+      "messages": [
+        "q_easy_016_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_016"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_017"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_018"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_021"
+    },
+    {
+      "messages": [
+        "q_easy_022_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_022"
+    },
+    {
+      "messages": [
+        "q_easy_023_e01: normalized section match"
+      ],
+      "question_id": "q_easy_023"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_024"
+    },
+    {
+      "messages": [
+        "q_easy_025_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_025"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_026"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_027"
+    },
+    {
+      "messages": [
+        "q_easy_028_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_028"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_030"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_031"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_032"
+    },
+    {
+      "messages": [
+        "q_easy_034_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_034"
+    },
+    {
+      "messages": [
+        "q_easy_035_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_035"
+    },
+    {
+      "messages": [
+        "q_easy_036_e01 sentence 0: normalized exact match",
+        "q_easy_036_e01: normalized section match"
+      ],
+      "question_id": "q_easy_036"
+    },
+    {
+      "messages": [
+        "q_easy_037_e01 sentence 0: normalized exact match",
+        "q_easy_037_e01: normalized section match"
+      ],
+      "question_id": "q_easy_037"
+    },
+    {
+      "messages": [
+        "q_easy_038_e01: normalized section match"
+      ],
+      "question_id": "q_easy_038"
+    },
+    {
+      "messages": [
+        "q_easy_039_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_039"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_040"
+    },
+    {
+      "messages": [
+        "q_easy_041_e01: normalized section match"
+      ],
+      "question_id": "q_easy_041"
+    },
+    {
+      "messages": [
+        "q_easy_042_e01: normalized section match"
+      ],
+      "question_id": "q_easy_042"
+    },
+    {
+      "messages": [
+        "q_easy_043_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_043"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_044"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_045"
+    },
+    {
+      "messages": [
+        "q_easy_046_e01: normalized section match"
+      ],
+      "question_id": "q_easy_046"
+    },
+    {
+      "messages": [
+        "q_easy_047_e01: normalized section match"
+      ],
+      "question_id": "q_easy_047"
+    },
+    {
+      "messages": [
+        "q_easy_048_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_048"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_049"
+    },
+    {
+      "messages": [
+        "q_easy_052_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_easy_052"
+    },
+    {
+      "messages": [
+        "q_easy_054_e01 sentence 0: normalized exact match",
+        "q_easy_054_e01: normalized section match"
+      ],
+      "question_id": "q_easy_054"
+    },
+    {
+      "messages": [
+        "q_easy_055_e01: normalized section match"
+      ],
+      "question_id": "q_easy_055"
+    },
+    {
+      "messages": [
+        "q_easy_056_e01 sentence 0: normalized exact match",
+        "q_easy_056_e01: normalized section match"
+      ],
+      "question_id": "q_easy_056"
+    },
+    {
+      "messages": [
+        "q_easy_057_e01: normalized section match"
+      ],
+      "question_id": "q_easy_057"
+    },
+    {
+      "messages": [],
+      "question_id": "q_easy_058"
+    },
+    {
+      "messages": [
+        "q_easy_059_e01: normalized section match"
+      ],
+      "question_id": "q_easy_059"
+    },
+    {
+      "messages": [
+        "q_easy_060_e01 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_easy_060"
+    },
+    {
+      "messages": [
+        "q_hard_001_e01 sentence 0: normalized exact match",
+        "q_hard_001_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_001"
+    },
+    {
+      "messages": [
+        "q_hard_002_e01 sentence 0: normalized exact match",
+        "q_hard_002_e01 sentence 1: normalized exact match",
+        "q_hard_002_e01 sentence 2: normalized exact match",
+        "q_hard_002_e01 sentence 3: normalized exact match",
+        "q_hard_002_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_002"
+    },
+    {
+      "messages": [
+        "q_hard_003_e03 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_003"
+    },
+    {
+      "messages": [
+        "q_hard_004_e02 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_hard_004"
+    },
+    {
+      "messages": [],
+      "question_id": "q_hard_005"
+    },
+    {
+      "messages": [
+        "q_hard_006_e01: normalized section match",
+        "q_hard_006_e02 sentence 0: normalized exact match",
+        "q_hard_006_e02: normalized section match"
+      ],
+      "question_id": "q_hard_006"
+    },
+    {
+      "messages": [
+        "q_hard_007_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_007"
+    },
+    {
+      "messages": [
+        "q_hard_008_e02 sentence 2: normalized exact match"
+      ],
+      "question_id": "q_hard_008"
+    },
+    {
+      "messages": [
+        "q_hard_009_e01: normalized section match",
+        "q_hard_009_e02: normalized section match"
+      ],
+      "question_id": "q_hard_009"
+    },
+    {
+      "messages": [
+        "q_hard_010_e02 sentence 0: normalized exact match",
+        "q_hard_010_e02: normalized section match"
+      ],
+      "question_id": "q_hard_010"
+    },
+    {
+      "messages": [
+        "q_hard_012_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_012"
+    },
+    {
+      "messages": [],
+      "question_id": "q_hard_013"
+    },
+    {
+      "messages": [
+        "q_hard_015_e01 sentence 0: normalized exact match",
+        "q_hard_015_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_015"
+    },
+    {
+      "messages": [
+        "q_hard_016_e01: normalized section match"
+      ],
+      "question_id": "q_hard_016"
+    },
+    {
+      "messages": [
+        "q_hard_017_e01 sentence 0: normalized exact match",
+        "q_hard_017_e01: normalized section match",
+        "q_hard_017_e02: normalized section match"
+      ],
+      "question_id": "q_hard_017"
+    },
+    {
+      "messages": [
+        "q_hard_018_e01: normalized section match",
+        "q_hard_018_e02: normalized section match"
+      ],
+      "question_id": "q_hard_018"
+    },
+    {
+      "messages": [
+        "q_hard_019_e01: normalized section match",
+        "q_hard_019_e02 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_hard_019"
+    },
+    {
+      "messages": [
+        "q_hard_020_e01 sentence 0: normalized exact match",
+        "q_hard_020_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_020"
+    },
+    {
+      "messages": [
+        "q_hard_022_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_022"
+    },
+    {
+      "messages": [
+        "q_hard_023_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_023"
+    },
+    {
+      "messages": [
+        "q_hard_024_e02: normalized section match"
+      ],
+      "question_id": "q_hard_024"
+    },
+    {
+      "messages": [
+        "q_hard_025_e01 sentence 0: normalized exact match",
+        "q_hard_025_e02 sentence 0: normalized exact match",
+        "q_hard_025_e03 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_025"
+    },
+    {
+      "messages": [
+        "q_hard_026_e01 sentence 0: normalized exact match",
+        "q_hard_026_e01: normalized section match",
+        "q_hard_026_e02 sentence 0: normalized exact match",
+        "q_hard_026_e02: normalized section match",
+        "q_hard_026_e03 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_026"
+    },
+    {
+      "messages": [
+        "q_hard_027_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_027"
+    },
+    {
+      "messages": [
+        "q_hard_028_e02 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_hard_028"
+    },
+    {
+      "messages": [
+        "q_hard_030_e01 sentence 0: normalized exact match",
+        "q_hard_030_e01 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_hard_030"
+    },
+    {
+      "messages": [
+        "q_hard_034_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_hard_034"
+    },
+    {
+      "messages": [
+        "q_hard_035_e03 sentence 0: normalized exact match",
+        "q_hard_035_e03: normalized section match"
+      ],
+      "question_id": "q_hard_035"
+    },
+    {
+      "messages": [
+        "q_hard_037_e01: normalized section match",
+        "q_hard_037_e02: normalized section match",
+        "q_hard_037_e03: normalized section match"
+      ],
+      "question_id": "q_hard_037"
+    },
+    {
+      "messages": [
+        "q_medium_001_e01 sentence 0: normalized exact match",
+        "q_medium_001_e01 sentence 1: normalized exact match",
+        "q_medium_001_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_001"
+    },
+    {
+      "messages": [
+        "q_medium_002_e01 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_medium_002"
+    },
+    {
+      "messages": [
+        "q_medium_003_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_003"
+    },
+    {
+      "messages": [
+        "q_medium_004_e01 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_medium_004"
+    },
+    {
+      "messages": [
+        "q_medium_005_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_005"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_007"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_008"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_009"
+    },
+    {
+      "messages": [
+        "q_medium_010_e01 sentence 0: normalized exact match",
+        "q_medium_010_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_010"
+    },
+    {
+      "messages": [
+        "q_medium_011_e01 sentence 1: normalized exact match",
+        "q_medium_011_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_011"
+    },
+    {
+      "messages": [
+        "q_medium_012_e01: normalized section match",
+        "q_medium_012_e02: normalized section match"
+      ],
+      "question_id": "q_medium_012"
+    },
+    {
+      "messages": [
+        "q_medium_014_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_014"
+    },
+    {
+      "messages": [
+        "q_medium_015_e01 sentence 0: normalized exact match",
+        "q_medium_015_e01 sentence 1: normalized exact match",
+        "q_medium_015_e02 sentence 0: normalized exact match",
+        "q_medium_015_e02 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_medium_015"
+    },
+    {
+      "messages": [
+        "q_medium_016_e01 sentence 0: normalized exact match",
+        "q_medium_016_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_016"
+    },
+    {
+      "messages": [
+        "q_medium_017_e01 sentence 0: normalized exact match",
+        "q_medium_017_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_017"
+    },
+    {
+      "messages": [
+        "q_medium_019_e02 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_medium_019"
+    },
+    {
+      "messages": [
+        "q_medium_020_e02 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_medium_020"
+    },
+    {
+      "messages": [
+        "q_medium_023_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_023"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_024"
+    },
+    {
+      "messages": [
+        "q_medium_025_e02 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_medium_025"
+    },
+    {
+      "messages": [
+        "q_medium_027_e02: normalized section match"
+      ],
+      "question_id": "q_medium_027"
+    },
+    {
+      "messages": [
+        "q_medium_028_e01 sentence 0: normalized exact match",
+        "q_medium_028_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_028"
+    },
+    {
+      "messages": [
+        "q_medium_029_e01 sentence 0: normalized exact match",
+        "q_medium_029_e02 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_medium_029"
+    },
+    {
+      "messages": [
+        "q_medium_030_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_030"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_031"
+    },
+    {
+      "messages": [
+        "q_medium_032_e01 sentence 0: normalized exact match",
+        "q_medium_032_e02 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_032"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_035"
+    },
+    {
+      "messages": [
+        "q_medium_036_e01 sentence 0: normalized exact match"
+      ],
+      "question_id": "q_medium_036"
+    },
+    {
+      "messages": [
+        "q_medium_037_e01 sentence 0: normalized exact match",
+        "q_medium_037_e01: normalized section match",
+        "q_medium_037_e02 sentence 0: normalized exact match",
+        "q_medium_037_e02: normalized section match"
+      ],
+      "question_id": "q_medium_037"
+    },
+    {
+      "messages": [
+        "q_medium_038_e01 sentence 0: normalized exact match",
+        "q_medium_038_e01: normalized section match",
+        "q_medium_038_e02: normalized section match"
+      ],
+      "question_id": "q_medium_038"
+    },
+    {
+      "messages": [],
+      "question_id": "q_medium_039"
+    },
+    {
+      "messages": [
+        "q_medium_040_e02 sentence 1: normalized exact match"
+      ],
+      "question_id": "q_medium_040"
+    }
+  ]
+}

@@ -12,7 +12,10 @@ from rag_chunking.data.writer import read_documents_jsonl
 from rag_chunking.embedding.config import load_embedding_config
 from rag_chunking.embedding.provider import OpenRouterEmbeddingProvider
 from rag_chunking.evaluation.evidence_runner import run_evidence_retrieval_benchmark
-from rag_chunking.evaluation.qa_dataset import load_qa_dataset, validate_qa_semantics
+from rag_chunking.evaluation.compatibility import audit_dataset_compatibility
+from rag_chunking.evaluation.qa_dataset import (
+    is_team_qa_dataset, load_qa_dataset, validate_qa_semantics,
+)
 from rag_chunking.retrieval.protocols import SAME_TOKEN_BUDGET, SAME_TOP_K, RetrievalProtocolConfig
 from rag_chunking.retrieval.service import RetrievalService
 
@@ -34,6 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--token-budget", type=int, default=2048)
     parser.add_argument("--embedding-config", type=Path, default=Path("configs/embedding.yaml"))
     parser.add_argument("--processed-root", type=Path, default=Path("data/processed"))
+    parser.add_argument("--raw-root", type=Path, default=Path("data/raw"))
     parser.add_argument("--chunks-root", type=Path, default=Path("data/chunks"))
     parser.add_argument("--indexes-root", type=Path, default=Path("data/indexes"))
     parser.add_argument("--query-cache", type=Path, default=Path("data/query-embedding-cache"))
@@ -53,26 +57,43 @@ def main(argv: list[str] | None = None) -> int:
             provider=OpenRouterEmbeddingProvider(embedding), query_cache_directory=args.query_cache,
         )
         documents_path = args.processed_root / args.corpus / "documents.jsonl"
-        documents = {document.doc_id: document for document in read_documents_jsonl(documents_path)}
-        dataset = load_qa_dataset(args.dataset, set(documents))
-        semantic = validate_qa_semantics(dataset, documents)
+        document_list = read_documents_jsonl(documents_path)
+        documents = {document.doc_id: document for document in document_list}
         chunks = {}
         chunk_fingerprints = {}
+        chunk_manifests = {}
         for strategy in args.strategies:
             chunk_path = args.chunks_root / args.corpus / strategy / "chunks.jsonl"
             chunks[strategy] = read_chunks_jsonl(chunk_path)
             chunk_fingerprints[strategy] = _sha256(chunk_path)
+            chunk_manifests[strategy] = json.loads(
+                (chunk_path.parent / "manifest.json").read_text(encoding="utf-8")
+            )
+        if is_team_qa_dataset(args.dataset):
+            compatibility = audit_dataset_compatibility(
+                dataset_path=args.dataset, documents=document_list,
+                chunks_by_strategy=chunks, chunk_manifests=chunk_manifests,
+                raw_root=args.raw_root / args.corpus,
+            )
+            dataset = compatibility.dataset
+            semantic_errors = [] if compatibility.passed else compatibility.report["gate_reasons"]
+            semantic_warnings = compatibility.report["warnings"]
+        else:
+            dataset = load_qa_dataset(args.dataset, set(documents))
+            semantic = validate_qa_semantics(dataset, documents)
+            semantic_errors = semantic.errors
+            semantic_warnings = semantic.warnings
         protocols = [
             RetrievalProtocolConfig(SAME_TOP_K, top_k=args.top_k, candidate_k=args.candidate_k),
             RetrievalProtocolConfig(SAME_TOKEN_BUDGET, candidate_k=args.candidate_k, token_budget=args.token_budget),
         ]
         plan = {
             "dataset_fingerprint": dataset.fingerprint, "queries": len(dataset.records),
-            "semantic_errors": semantic.errors, "semantic_warnings": semantic.warnings,
+            "semantic_errors": semantic_errors, "semantic_warnings": semantic_warnings,
             "protocol_fingerprints": {protocol.mode: protocol.fingerprint for protocol in protocols},
         }
-        if semantic.errors:
-            raise ValueError(f"QA semantic validation failed: {semantic.errors}")
+        if semantic_errors:
+            raise ValueError(f"QA compatibility validation failed: {semantic_errors}")
         if args.plan_only:
             print(json.dumps(plan, ensure_ascii=False, sort_keys=True))
             return 0
